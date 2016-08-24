@@ -1,0 +1,19 @@
+{
+  "name": "life",
+  "version": "1.0.0",
+  "description": "Conway's Game of Life in 3D",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mtcliatt/Life.git"
+  },
+  "author": "Matthew Cliatt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mtcliatt/Life/issues"
+  },
+  "homepage": "https://github.com/mtcliatt/Life#readme"
+}
