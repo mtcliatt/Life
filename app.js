@@ -1,6 +1,7 @@
 'use strict';
 
 const settings = {
+
 	cellSize: 1,
 	cellPadding: 1,
 	numRows: 15,
@@ -8,12 +9,15 @@ const settings = {
 	numLayers: 15,
 	cellGeometry: THREE.BoxGeometry,
 	cellMaterial: THREE.MeshNormalMaterial,
+
 }
 
 const state = {
+
 	alive: 0,
 	dead: 1,
 	tbd: 2,
+
 }
 
 let cells;
@@ -23,6 +27,7 @@ let scene;
 let renderer;
 
 (function init() {
+
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
@@ -48,8 +53,8 @@ let renderer;
 	container.appendChild(renderer.domElement);
 
 	drawScene();
-
 	animate();
+
 })();
 
 function drawScene() {
@@ -57,7 +62,6 @@ function drawScene() {
 	const createCell = () => {
 
 		const {cellSize: size} = settings;
-
 		const geometry = new settings.cellGeometry(size, size, size);
 		const material = new settings.cellMaterial();
 
@@ -95,9 +99,84 @@ function drawScene() {
 
 }
 
+function determineNextState() {
+
+	for (let column = 0; column < cells.length; column++) {
+
+		for (let row = 0; row < cells[column].length; row++) {
+
+			for (let layer = 0; layer < cells[column][row].length; layer++) {
+
+				const cell = cells[column][row][layer];
+				const {currentState} = cell;
+
+				let nextState = state.tbd;
+				let aliveNeighbors = countAliveNeighbors(column, row, layer);
+
+			}
+
+		}
+
+	}
+
+
+
+}
+
+function countAliveNeighbors(column, row, layer) {
+
+	let count = 0;
+	const directions = [-1, 0, 1];
+
+	for (let xDirection = 0; xDirection < directions.length; xDirection++) {
+
+    for (let yDirection = 0; yDirection < directions.length; yDirection++) {
+
+      for (let zDirection = 0; zDirection < directions.length; zDirection++) {
+
+        if (xDirection == 0 && yDirection == 0 && zDirection == 0) {
+
+        	continue;
+
+        }
+
+        const neighborsRow = row + directions[xDirection];
+        const neighborsColumn = column + directions[yDirection];
+        const neighborsLayer = layer + directions[zDirection];
+
+        const isRowValid = neighborsRow > 0 && neighborsRow < cells.length;
+        const isColumnValid = neighborsColumn > 0 && neighborsColumn < cells[0].length;
+        const isLayerValid = neighborsLayer > 0 && neighborsLayer < cells[0][0].length;
+
+        if (isRowValid && isColumnValid && isLayerValid) {
+
+        	const neighbor = cells[neighborsColumn][neighborsRow][neighborsLayer];
+
+        	if (neighbor.currentState == state.alive) {
+
+        		count++;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	return count;
+
+}
+
 function animate() {
+
 	requestAnimationFrame(animate);
 
+	determineNextState();
+
+/*
 	cells.forEach(column => {
 		column.forEach(row => {
 			row.forEach(cell => {
@@ -121,6 +200,7 @@ function animate() {
 			})
 		})
 	});
-
+*/
 	renderer.render(scene, camera);
+
 }
