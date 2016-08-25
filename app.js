@@ -1,17 +1,11 @@
 'use strict';
 
-const THREE = require('./three.min.js');
+//const THREE = require('./three.min.js');
 let camera;
 let scene;
 let renderer;
 
-// Create and set up the camera, scene, and renderer
-init();
-
-// Continuously renders scene
-animate();
-
-function init() {
+(function init() {
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
@@ -33,10 +27,20 @@ function init() {
 	});
 
 	container.appendChild(renderer.domElement);
+
+	drawScene();
+
+	animate();
+})();
+
+function drawScene() {
+	console.log('here');
 }
 
 function animate() {
 	requestAnimationFrame(animate);
+
+
 
 	renderer.render(scene, camera);
 }
