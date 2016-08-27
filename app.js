@@ -1,17 +1,28 @@
 'use strict';
 
+/*
+ * Config vars
+ *
+ * cellSize - size of each cell (width, height, depth for box,
+ *                               radius for sphere)
+ * cellPadding - space between cells
+ * cellGeometry - A THREE.Geometry class describing the cell's shape
+ * cellMaterial - A THREE.Material class describing the cell's appearance
+ */
 const settings = {
 
 	cellSize: 1,
-	cellPadding: 1,
+	cellPadding: 0.5,
 	numRows: 15,
 	numColumns: 15,
 	numLayers: 15,
+  startPercentage: 70,
 	cellGeometry: THREE.BoxGeometry,
 	cellMaterial: THREE.MeshNormalMaterial,
 
 }
 
+// Possible cell states
 const state = {
 
 	alive: 0,
@@ -20,20 +31,37 @@ const state = {
 
 }
 
+// Grid of cells
 let cells;
 
+// To control speed
+let time;
+
+// To toggle animation
+let animationOn;
+
+// THREE components
 let camera;
 let scene;
 let renderer;
 
+/*
+ * Set up the scene,
+ *) draw the cells,
+ * start the animation
+ */
 (function init() {
+
+  time = performance.now();
+  animationOn = true;
+	cells = [];
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
 
 	camera = new THREE.PerspectiveCamera(45, width / height, 1, 100000);
-	camera.position.set(10, 10, 50);
+	camera.position.set(10, 15, 75);
 	camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 	scene = new THREE.Scene();
@@ -43,6 +71,8 @@ let renderer;
 	renderer.setSize(width, height);
 	renderer.setClearColor(new THREE.Color(0, 0.12, 0.2));
 
+	container.appendChild(renderer.domElement);
+
 	window.addEventListener('resize', () => {
 		camera.aspect = container.clientWidth / container.clientHeight;
 		camera.updateProjectionMatrix();
@@ -50,14 +80,105 @@ let renderer;
 		renderer.setSize(container.clientWidth, container.clientHeight);
 	});
 
-	container.appendChild(renderer.domElement);
-
+  setUpControls();
 	drawScene();
 	animate();
 
 })();
 
+// This function makes it easy to add event listeners to elements
+function eventAdder(elementId, event, func) {
+
+  const element = document.getElementById(elementId);
+
+  if (element != null) {
+
+    element.addEventListener(event, func);
+
+  }
+
+}
+
+function setUpControls() {
+
+  const percentageTextField = document.getElementById('randomnessTextField')
+  percentageTextField.value = settings.startPercentage + '%';
+
+  const toggleAnimation = () => {
+
+    animationOn = !animationOn;
+
+  };
+
+  const randomizeStates = () => {
+
+    console.log(`Randomness percentage: ${settings.startPercentage}`);
+
+    cells.forEach(column => {
+
+      column.forEach(row => {
+
+        row.forEach(cell => {
+
+          if (Math.random() < (settings.startPercentage / 100)) {
+
+            cell.currentState = state.alive;
+            cell.visible = true;
+
+          } else {
+
+            cell.currentState = state.dead;
+            cell.visible = false;
+
+          }
+
+          cell.nextState = state.tbd;
+
+        });
+
+      });
+
+    });
+
+  };
+
+  const updateStartPercentage = diff => {
+
+    settings.startPercentage += diff;
+    settings.startPercentage = Math.min(settings.startPercentage, 90);
+    settings.startPercentage = Math.max(settings.startPercentage, 10);
+
+    const textField = document.getElementById('randomnessTextField');
+    textField.value = settings.startPercentage + '%';
+
+  };
+
+  const increaseStartPercentage = () => {
+
+    updateStartPercentage(10);
+
+  }
+
+  const decreaseStartPercentage = () => {
+
+    updateStartPercentage(-10);
+
+  }
+
+
+  eventAdder('animationButton', 'click', toggleAnimation);
+  eventAdder('randomizeButton', 'click', randomizeStates);
+  eventAdder('increaseRandomness', 'click', increaseStartPercentage);
+  eventAdder('decreaseRandomness', 'click', decreaseStartPercentage);
+
+}
+
+/*
+ * Draw the cells in the scene
+ */
 function drawScene() {
+
+	const spacing = settings.cellSize + settings.cellPadding;
 
 	const createCell = () => {
 
@@ -68,10 +189,6 @@ function drawScene() {
 		return new THREE.Mesh(geometry, material);
 
 	}
-
-	cells = [];
-
-	const spacing = settings.cellSize + settings.cellPadding;
 
 	for (let xIndex = 0; xIndex < settings.numColumns; xIndex++) {
 
@@ -88,9 +205,24 @@ function drawScene() {
 				scene.add(cell);
 
 				cell.position.set(xIndex * spacing, yIndex * spacing, zIndex * spacing);
-
-				cell.currentState = state.alive;
 				cell.nextState = state.tbd;
+
+        if (Math.random() <= (settings.startPercentage / 100)) {
+
+          cell.currentState = state.alive;
+
+        } else {
+
+          cell.currentState = state.dead;
+
+        }
+
+        if (cell.currentState == state.dead) {
+
+          cell.visible = false;
+
+        }
+
 			}
 
 		}
@@ -99,6 +231,10 @@ function drawScene() {
 
 }
 
+/*
+ * Determine and set the nextState for each cell.
+ * Does NOT change the cell's currentState.
+ */
 function determineNextState() {
 
 	for (let column = 0; column < cells.length; column++) {
@@ -108,10 +244,43 @@ function determineNextState() {
 			for (let layer = 0; layer < cells[column][row].length; layer++) {
 
 				const cell = cells[column][row][layer];
-				const {currentState} = cell;
 
 				let nextState = state.tbd;
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
+
+
+        /*
+         * If a cell is dead, it becomes alive if it has
+         * between XXX and XXX neighbors, otherwise it stays dead.
+         *
+         * If a cell is alive, it stays alive if it has
+         * between XXX and XXX neighbors, otherwise it dies.
+         */
+        if (cell.currentState == state.dead) {
+
+          if (aliveNeighbors > 7 && aliveNeighbors < 12) {
+
+            cell.nextState = state.alive;
+
+          } else {
+
+            cell.nextState == state.dead;
+
+          }
+
+        } else {
+
+          if (aliveNeighbors > 13 || aliveNeighbors < 6) {
+
+            cell.nextState = state.dead;
+
+          } else {
+
+            cell.nextState = state.alive;
+
+          }
+
+        }
 
 			}
 
@@ -119,46 +288,52 @@ function determineNextState() {
 
 	}
 
-
-
 }
 
+/*
+ * Returns the number of alive cells neighboring the cell
+ * at the given column, row, and layer.
+ */
 function countAliveNeighbors(column, row, layer) {
 
+  // Directions
+	const dirs = [0, 1, -1];
 	let count = 0;
-	const directions = [-1, 0, 1];
 
-	for (let xDirection = 0; xDirection < directions.length; xDirection++) {
+	for (let x = 0; x < dirs.length; x++) {
 
-    for (let yDirection = 0; yDirection < directions.length; yDirection++) {
+    for (let y = 0; y < dirs.length; y++) {
 
-      for (let zDirection = 0; zDirection < directions.length; zDirection++) {
+      for (let z = 0; z < dirs.length; z++) {
 
-        if (xDirection == 0 && yDirection == 0 && zDirection == 0) {
+        // Don't count the cell itself
+        if (x == 0 && y == 0 && z == 0) {
 
         	continue;
 
         }
 
-        const neighborsRow = row + directions[xDirection];
-        const neighborsColumn = column + directions[yDirection];
-        const neighborsLayer = layer + directions[zDirection];
+        // Current neighbor coordinates
+        const nColumn = column + dirs[x];
+        const nRow = row + dirs[y];
+        const nLayer = layer + dirs[z];
 
-        const isRowValid = neighborsRow > 0 && neighborsRow < cells.length;
-        const isColumnValid = neighborsColumn > 0 && neighborsColumn < cells[0].length;
-        const isLayerValid = neighborsLayer > 0 && neighborsLayer < cells[0][0].length;
+        // Make sure index is within array bounds.
+        if (nColumn < 0 || nColumn >= cells.length ||
+            nRow < 0 || nRow >= cells[nColumn].length ||
+            nLayer < 0 || nLayer >= cells[nColumn][nRow].length) {
 
-        if (isRowValid && isColumnValid && isLayerValid) {
+          continue;
 
-        	const neighbor = cells[neighborsColumn][neighborsRow][neighborsLayer];
+        }
 
-        	if (neighbor.currentState == state.alive) {
+        const neighbor = cells[nColumn][nRow][nLayer];
 
-        		count++;
+        if (neighbor.currentState == state.alive) {
 
-					}
+          count++;
 
-				}
+        }
 
 			}
 
@@ -170,37 +345,48 @@ function countAliveNeighbors(column, row, layer) {
 
 }
 
+function goToNextState() {
+
+	cells.forEach(column => {
+
+		column.forEach(row => {
+
+			row.forEach(cell => {
+
+        cell.currentState = cell.nextState;
+        cell.nextState = state.tbd;
+
+        if (cell.currentState == state.alive) {
+
+          cell.visible = true;
+
+        } else {
+
+          cell.visible = false;
+
+        }
+
+      });
+
+    });
+
+  });
+
+}
+
+
 function animate() {
 
 	requestAnimationFrame(animate);
 
-	determineNextState();
+  if (animationOn) {
 
-/*
-	cells.forEach(column => {
-		column.forEach(row => {
-			row.forEach(cell => {
+    determineNextState();
+    goToNextState();
 
-				cell.nextState = Math.floor(Math.random() * 3);
+  }
 
-				if (cell.nextState == state.dead) {
-
-					cell.visible = false;
-					cell.currentState = state.dead;
-
-				} else {
-
-					cell.visible = true;
-					cell.currentState = state.alive;
-
-				}
-
-				cell.nextState = state.tbd;
-
-			})
-		})
-	});
-*/
 	renderer.render(scene, camera);
 
 }
+

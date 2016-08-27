@@ -19,10 +19,33 @@
 
 			overflow: hidden;
 		}
+
+    #controls {
+      position: absolute;
+      top: 0;
+      left: 0;
+
+      z-index: 1;
+    }
 	</style>
 </head>
 <body>
+  <h1>Hey</h1>
 	<div id="drawingCanvas"></div>
+  <div id="controls">
+
+    <button id="animationButton">Toggle Animation</button>
+
+    <br><br>
+
+    <button id="randomizeButton">Randomize cells</button>
+
+    <br><br>
+
+    <button id="increaseRandomness">+</button>
+    <input type="text" id="randomnessTextField" size="2" disabled="true">
+    <button id="decreaseRandomness">-</button>
+  </div>
 
 	<script src="./three.min.js"></script>
 	<script src="./app.js"></script>
