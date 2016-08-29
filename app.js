@@ -1,26 +1,16 @@
 'use strict';
 
-/*
- * Config vars
- *
- * cellPadding - space between cells
- *
- * startPercentage - percentage of cells to start alive
- *
- * cellGeometry - A THREE.Geometry class describing the cell's shape
- * cellMaterial - A THREE.Material class describing the cell's appearance
- *
- */
 const settings = {
 
 	cellSize: 1,
 	cellPadding: 0.5,
-	numRows: 15,
-	numColumns: 15,
-	numLayers: 15,
+	numRows: 20,
+	numColumns: 20,
+	numLayers: 20,
   startPercentage: 30,
 	cellGeometry: THREE.BoxGeometry,
 	cellMaterial: THREE.MeshNormalMaterial,
+  wrapAround: true,
 
   rules: {
 
@@ -44,12 +34,14 @@ const state = {
 
 // Grid of cells
 let cells;
+let aliveCells;
+let totalCells;
 
-// To control speed
-let time;
+// Number of cycles since last restart
+let iterations;
 
-// To toggle animation
 let animationOn;
+let isStalled;
 
 // THREE components
 let camera;
@@ -63,17 +55,22 @@ let renderer;
  */
 (function init() {
 
-  time = performance.now();
+  iterations = 0;
+
+  isStalled = false;
   animationOn = true;
+
 	cells = [];
+  aliveCells = 0;
+  totalCells = settings.numRows * settings.numColumns * settings.numLayers;
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
 
 	camera = new THREE.PerspectiveCamera(45, width / height, 1, 100000);
-	camera.position.set(10, 25, 75);
-	camera.lookAt(new THREE.Vector3(10, 0, 0));
+	camera.position.set(15, 35, 85);
+	camera.lookAt(new THREE.Vector3(15, 5, 0));
 
 	scene = new THREE.Scene();
 	scene.add(camera);
@@ -130,10 +127,24 @@ function setUpControls() {
   const toggleAnimation = () => {
 
     animationOn = !animationOn;
+    const textField = document.getElementById('animationStatus');
+    textField.innerHTML = animationOn ? 'ON' : 'OFF';
 
   };
 
+  const toggleWrapAround = () => {
+
+    settings.wrapAround = !settings.wrapAround;
+    const textField = document.getElementById('wrapAroundStatus');
+    textField.innerHTML = settings.wrapAround ? 'ON' : 'OFF';
+
+  }
+
   const randomizeStates = () => {
+
+    iterations = 0;
+    isStalled = false;
+    aliveCells = 0;
 
     cells.forEach(column => {
 
@@ -174,17 +185,8 @@ function setUpControls() {
 
   };
 
-  const increaseStartPercentage = () => {
-
-    updateStartPercentage(10);
-
-  }
-
-  const decreaseStartPercentage = () => {
-
-    updateStartPercentage(-10);
-
-  }
+  const increaseStartPercentage = () => { updateStartPercentage(10); }
+  const decreaseStartPercentage = () => { updateStartPercentage(-10); }
 
   const updateRule = (rule, diff) => {
 
@@ -197,68 +199,30 @@ function setUpControls() {
 
   }
 
-  const increaseOvercrowding = () => {
-
-    updateRule('overcrowding', 1);
-
-  }
-
-  const decreaseOvercrowding = () => {
-
-    updateRule('overcrowding', -1);
-
-  }
-
-  const increaseStarvation = () => {
-
-    updateRule('starvation', 1);
-
-  }
-
-  const decreaseStarvation = () => {
-
-    updateRule('starvation', -1);
-
-  }
-
-  const increaseBirthMin = () => {
-
-    updateRule('birthMin', 1);
-
-  }
-
-  const decreaseBirthMin = () => {
-
-    updateRule('birthMin', -1);
-
-  }
-
-  const increaseBirthMax = () => {
-
-    updateRule('birthMax', 1);
-
-  }
-
-  const decreaseBirthMax = () => {
-
-    updateRule('birthMax', -1);
-
-  }
+  const increaseOvercrowding = () => { updateRule('overcrowding', 1); }
+  const decreaseOvercrowding = () => { updateRule('overcrowding', -1); }
+  const increaseStarvation = () => { updateRule('starvation', 1); }
+  const decreaseStarvation = () => { updateRule('starvation', -1); }
+  const increaseBirthMin = () => { updateRule('birthMin', 1); }
+  const decreaseBirthMin = () => { updateRule('birthMin', -1); }
+  const increaseBirthMax = () => { updateRule('birthMax', 1); }
+  const decreaseBirthMax = () => { updateRule('birthMax', -1); }
 
   const resetCameraPosition = () => {
 
-    camera.position.set(10, 25, 75);
-    camera.lookAt(new THREE.Vector3(10, 0, 0));
+    camera.position.set(15, 35, 85);
+    camera.lookAt(new THREE.Vector3(15, 5, 0));
 
   }
 
   eventAdder('animationButton', 'click', toggleAnimation);
+  eventAdder('wrapAroundButton', 'click', toggleWrapAround);
+
   eventAdder('randomizeButton', 'click', randomizeStates);
   eventAdder('resetCameraButton', 'click', resetCameraPosition);
 
   eventAdder('increaseRandomness', 'click', increaseStartPercentage);
   eventAdder('decreaseRandomness', 'click', decreaseStartPercentage);
-
   eventAdder('increaseOvercrowding', 'click', increaseOvercrowding);
   eventAdder('decreaseOvercrowding', 'click', decreaseOvercrowding);
   eventAdder('increaseStarvation', 'click', increaseStarvation);
@@ -268,12 +232,26 @@ function setUpControls() {
   eventAdder('increaseBirthMax', 'click', increaseBirthMax);
   eventAdder('decreaseBirthMax', 'click', decreaseBirthMax);
 
+}
 
+function updateStatus() {
+
+  const animationTextField = document.getElementById('animationStatus');
+  animationTextField.innerHTML = animationOn ? 'ON' : 'OFF';
+
+  const iterationsTextField = document.getElementById('iterationsStatus');
+  iterationsTextField.innerHTML = iterations;
+
+  const cellsTextField = document.getElementById('cellsStatus');
+  cellsTextField.innerHTML = Math.round(100 * aliveCells / totalCells) + '%';
+
+  const stalledStatus = document.getElementById('stalledStatus');
+  stalledStatus.innerHTML = isStalled ? 'Yes' : 'No';
 
 }
 
 /*
- * Draw the cells in the scene
+ * Create the cells in the scene
  */
 function drawScene() {
 
@@ -336,6 +314,8 @@ function drawScene() {
  */
 function determineNextState() {
 
+  let stateChanged = false;
+
 	for (let column = 0; column < cells.length; column++) {
 
 		for (let row = 0; row < cells[column].length; row++) {
@@ -350,10 +330,12 @@ function determineNextState() {
 
         /*
          * If a cell is dead, it becomes alive if it has
-         * between XXX and XXX neighbors, otherwise it stays dead.
+         * between settings.rules.birthMin and settings.rules.birthMax
+         * neighbors, otherwise it stays dead.
          *
          * If a cell is alive, it stays alive if it has
-         * between XXX and XXX neighbors, otherwise it dies.
+         * between settings.rules.starvation and settings.rules.overcrowding
+         * neighbors, otherwise it dies.
          */
         if (cell.currentState == state.dead) {
 
@@ -387,11 +369,51 @@ function determineNextState() {
 
         }
 
+        if (!stateChanged && cell.nextState != cell.currentState) {
+
+          stateChanged = true;
+
+        }
+
 			}
 
 		}
 
 	}
+
+  isStalled = !stateChanged;
+
+}
+
+function goToNextState() {
+
+  aliveCells = 0;
+
+	cells.forEach(column => {
+
+		column.forEach(row => {
+
+			row.forEach(cell => {
+
+        cell.currentState = cell.nextState;
+        cell.nextState = state.tbd;
+
+        if (cell.currentState == state.alive) {
+
+          cell.visible = true;
+          aliveCells++;
+
+        } else {
+
+          cell.visible = false;
+
+        }
+
+      });
+
+    });
+
+  });
 
 }
 
@@ -412,33 +434,40 @@ function countAliveNeighbors(column, row, layer) {
       for (let z = 0; z < dirs.length; z++) {
 
         // Don't count the cell itself
-        if (x == 0 && y == 0 && z == 0) {
-
-        	continue;
-
-        }
+        if (x == 0 && y == 0 && z == 0) { continue; }
 
         // Current neighbor coordinates
-        const nColumn = column + dirs[x];
-        const nRow = row + dirs[y];
-        const nLayer = layer + dirs[z];
+        let nColumn = column + dirs[x];
+        let nRow = row + dirs[y];
+        let nLayer = layer + dirs[z];
 
-        // Make sure index is within array bounds.
-        if (nColumn < 0 || nColumn >= cells.length ||
-            nRow < 0 || nRow >= cells[nColumn].length ||
-            nLayer < 0 || nLayer >= cells[nColumn][nRow].length) {
+        if (settings.wrapAround) {
 
-          continue;
+          if (nColumn < 0) { nColumn = cells.length - 1; }
+          if (nColumn >= cells.length) { nColumn = 0; }
+
+          if (nRow < 0) { nRow = cells[nColumn].length - 1; }
+          if (nRow >= cells[nColumn].length) { nRow = 0; }
+
+          if (nLayer < 0) { nLayer = cells[nColumn][nRow].length - 1; }
+          if (nLayer >= cells[nColumn][nRow].length) { nLayer = 0; }
+
+        } else {
+
+          // Make sure index is within array bounds.
+          if (nColumn < 0 || nColumn >= cells.length ||
+              nRow < 0 || nRow >= cells[nColumn].length ||
+              nLayer < 0 || nLayer >= cells[nColumn][nRow].length) {
+
+            continue;
+
+          }
 
         }
 
         const neighbor = cells[nColumn][nRow][nLayer];
 
-        if (neighbor.currentState == state.alive) {
-
-          count++;
-
-        }
+        if (neighbor.currentState == state.alive) { count++; }
 
 			}
 
@@ -450,46 +479,20 @@ function countAliveNeighbors(column, row, layer) {
 
 }
 
-function goToNextState() {
-
-	cells.forEach(column => {
-
-		column.forEach(row => {
-
-			row.forEach(cell => {
-
-        cell.currentState = cell.nextState;
-        cell.nextState = state.tbd;
-
-        if (cell.currentState == state.alive) {
-
-          cell.visible = true;
-
-        } else {
-
-          cell.visible = false;
-
-        }
-
-      });
-
-    });
-
-  });
-
-}
-
-
 function animate() {
 
 	requestAnimationFrame(animate);
 
   if (animationOn) {
 
+    iterations++;
+
     determineNextState();
     goToNextState();
 
   }
+
+  updateStatus();
 
 	renderer.render(scene, camera);
 

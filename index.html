@@ -22,54 +22,66 @@
 
     .controls {
       position: fixed;
-      z-index: 1;
       top: 0;
       left: 0;
       width: 25vw;
       height: 100vh;
-
       border-right: 2px solid white;
-      text-align: center;
-
       background-color: #222222;
+      text-align: center;
     }
 
     .controlHeader {
-
       color: white;
       font-family: "Lucida Console", Monaco, monospace;
       font-size: 6;
-
     }
 
     button {
-      background-color: #008CBA;
+      background-color: #004466;
       color: white;
-
       border: none;
       padding: 1px 5px;
-
       text-align: center;
       text-decoration: none;
-
       display: inline;
       font-size: 16px;
     }
 
-    .varLabel {
-
+    .controlLabel {
       display: inline;
       font-size: 12px;
       color: white;
-
     }
 
-    .var {
-
+    .controlVar {
       display: inline;
       font-size: 14px;
       color: white;
+      text-decoration: underline;
+    }
 
+    .status {
+      background-color: #111111;
+      position: relative;
+      left: 5%;
+      top: 1%;
+      width: 90%;
+      height: 25%;
+      color: #00ff32;
+      border: solid 2px #00ff32;
+    }
+
+    .statusLabel {
+      font-size: 12px;
+      margin: 1px;
+      display: inline;
+    }
+
+    .statusVar {
+      font-size: 12px;
+      margin: 1px;
+      display: inline;
     }
 
 	</style>
@@ -77,42 +89,62 @@
 <body>
 	<div id="drawingCanvas"></div>
 
-
   <div class="controls">
 
-    <p class="controlHeader">Controls</p>
+    <div class="status">
+      <p><u>Status</u></p>
+      <p class="statusLabel">Animation: </p>
+      <p id="animationStatus" class="statusVar">ON</p>
+      <br>
+      <p class="statusLabel">Wrap-Around: </p>
+      <p id="wrapAroundStatus" class="statusVar">ON</p>
+      <br>
+      <p class="statusLabel">Iterations: </p>
+      <p id="iterationsStatus" class="statusVar">0</p>
+      <br>
+      <p class="statusLabel">Cells alive: </p>
+      <p id="cellsStatus" class="statusVar">0</p>
+      <br>
+      <p class="statusLabel">Stalled: </p>
+      <p id="stalledStatus" class="statusVar">No</p>
+      <br>
+    </div>
 
-    <button id="animationButton">Toggle Animation</button>
-    <br><br>
-    <button id="randomizeButton">Randomize Cells</button>
-    <br><br>
+    <br>
+
+    <button id="animationButton">Pause/Resume</button>
+    <br> <br>
+    <button id="wrapAroundButton">Toggle Wrap-Around</button>
+    <br> <br>
+    <button id="randomizeButton">Reset State</button>
     <button id="resetCameraButton">Reset Camera</button>
+    <br> <br>
 
+    <p class="controlLabel">Initial % alive: </p>
+    <p class="controlVar" id="randomnessTextField"></p>
+    <button id="decreaseRandomness">-</button>
+    <button id="increaseRandomness">+</button>
     <br><br>
 
-      <p class="controlHeader">Start Alive %</p>
-      <p class="var" id="randomnessTextField"></p>
-      <button id="decreaseRandomness">-</button>
-      <button id="increaseRandomness">+</button>
-    <br><br>
-
-    <p class="varLabel">Overcrowding ></p>
-    <p class="var" id="overcrowdingTextField"></p>
+    <p class="controlLabel">Overcrowding ></p>
+    <p class="controlVar" id="overcrowdingTextField"></p>
     <button id="decreaseOvercrowding">-</button>
     <button id="increaseOvercrowding">+</button>
     <br> <br>
 
-    <p class="varLabel">Starvation <</p>
-    <p class="var" id="starvationTextField"></p>
+    <p class="controlLabel">Starvation <</p>
+    <p class="controlVar" id="starvationTextField"></p>
     <button id="decreaseStarvation">-</button>
     <button id="increaseStarvation">+</button>
     <br> <br>
 
     <button id="decreaseBirthMin">-</button>
     <button id="increaseBirthMin">+</button>
-    <p class="var" id="birthMinTextField"></p>
-    <p class="varLabel">&lt;Birth&gt;</p>
-    <p class="var" id="birthMaxTextField"></p>
+    <br>
+    <p class="controlVar" id="birthMinTextField"></p>
+    <p class="controlLabel">&lt; Birth &gt;</p>
+    <p class="controlVar" id="birthMaxTextField"></p>
+    <br>
     <button id="decreaseBirthMax">-</button>
     <button id="increaseBirthMax">+</button>
     <br>
