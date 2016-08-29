@@ -3,11 +3,13 @@
 /*
  * Config vars
  *
- * cellSize - size of each cell (width, height, depth for box,
- *                               radius for sphere)
  * cellPadding - space between cells
+ *
+ * startPercentage - percentage of cells to start alive
+ *
  * cellGeometry - A THREE.Geometry class describing the cell's shape
  * cellMaterial - A THREE.Material class describing the cell's appearance
+ *
  */
 const settings = {
 
@@ -16,9 +18,18 @@ const settings = {
 	numRows: 15,
 	numColumns: 15,
 	numLayers: 15,
-  startPercentage: 70,
+  startPercentage: 30,
 	cellGeometry: THREE.BoxGeometry,
 	cellMaterial: THREE.MeshNormalMaterial,
+
+  rules: {
+
+    overcrowding: 12,
+    starvation: 6,
+    birthMin: 6,
+    birthMax: 12,
+
+  },
 
 }
 
@@ -61,8 +72,8 @@ let renderer;
 	const height = container.clientHeight;
 
 	camera = new THREE.PerspectiveCamera(45, width / height, 1, 100000);
-	camera.position.set(10, 15, 75);
-	camera.lookAt(new THREE.Vector3(0, 0, 0));
+	camera.position.set(10, 25, 75);
+	camera.lookAt(new THREE.Vector3(10, 0, 0));
 
 	scene = new THREE.Scene();
 	scene.add(camera);
@@ -101,8 +112,20 @@ function eventAdder(elementId, event, func) {
 
 function setUpControls() {
 
-  const percentageTextField = document.getElementById('randomnessTextField')
-  percentageTextField.value = settings.startPercentage + '%';
+  const percentageTextField = document.getElementById('randomnessTextField');
+  percentageTextField.innerHTML = settings.startPercentage + '%';
+
+  const overcrowdingTextField = document.getElementById('overcrowdingTextField');
+  overcrowdingTextField.innerHTML = settings.rules.overcrowding;
+
+  const starvationTextField = document.getElementById('starvationTextField');
+  starvationTextField.innerHTML = settings.rules.starvation;
+
+  const birthMinTextField = document.getElementById('birthMinTextField');
+  birthMinTextField.innerHTML = settings.rules.birthMin;
+
+  const birthMaxTextField = document.getElementById('birthMaxTextField');
+  birthMaxTextField.innerHTML = settings.rules.birthMax;
 
   const toggleAnimation = () => {
 
@@ -111,8 +134,6 @@ function setUpControls() {
   };
 
   const randomizeStates = () => {
-
-    console.log(`Randomness percentage: ${settings.startPercentage}`);
 
     cells.forEach(column => {
 
@@ -149,7 +170,7 @@ function setUpControls() {
     settings.startPercentage = Math.max(settings.startPercentage, 10);
 
     const textField = document.getElementById('randomnessTextField');
-    textField.value = settings.startPercentage + '%';
+    textField.innerHTML = settings.startPercentage + '%';
 
   };
 
@@ -165,11 +186,89 @@ function setUpControls() {
 
   }
 
+  const updateRule = (rule, diff) => {
+
+    settings.rules[rule] += diff;
+    settings.rules[rule] = Math.min(settings.rules[rule], 27);
+    settings.rules[rule] = Math.max(settings.rules[rule], 0);
+
+    const textField = document.getElementById(rule + 'TextField');
+    textField.innerHTML = settings.rules[rule];
+
+  }
+
+  const increaseOvercrowding = () => {
+
+    updateRule('overcrowding', 1);
+
+  }
+
+  const decreaseOvercrowding = () => {
+
+    updateRule('overcrowding', -1);
+
+  }
+
+  const increaseStarvation = () => {
+
+    updateRule('starvation', 1);
+
+  }
+
+  const decreaseStarvation = () => {
+
+    updateRule('starvation', -1);
+
+  }
+
+  const increaseBirthMin = () => {
+
+    updateRule('birthMin', 1);
+
+  }
+
+  const decreaseBirthMin = () => {
+
+    updateRule('birthMin', -1);
+
+  }
+
+  const increaseBirthMax = () => {
+
+    updateRule('birthMax', 1);
+
+  }
+
+  const decreaseBirthMax = () => {
+
+    updateRule('birthMax', -1);
+
+  }
+
+  const resetCameraPosition = () => {
+
+    camera.position.set(10, 25, 75);
+    camera.lookAt(new THREE.Vector3(10, 0, 0));
+
+  }
 
   eventAdder('animationButton', 'click', toggleAnimation);
   eventAdder('randomizeButton', 'click', randomizeStates);
+  eventAdder('resetCameraButton', 'click', resetCameraPosition);
+
   eventAdder('increaseRandomness', 'click', increaseStartPercentage);
   eventAdder('decreaseRandomness', 'click', decreaseStartPercentage);
+
+  eventAdder('increaseOvercrowding', 'click', increaseOvercrowding);
+  eventAdder('decreaseOvercrowding', 'click', decreaseOvercrowding);
+  eventAdder('increaseStarvation', 'click', increaseStarvation);
+  eventAdder('decreaseStarvation', 'click', decreaseStarvation);
+  eventAdder('increaseBirthMin', 'click', increaseBirthMin);
+  eventAdder('decreaseBirthMin', 'click', decreaseBirthMin);
+  eventAdder('increaseBirthMax', 'click', increaseBirthMax);
+  eventAdder('decreaseBirthMax', 'click', decreaseBirthMax);
+
+
 
 }
 
@@ -258,19 +357,25 @@ function determineNextState() {
          */
         if (cell.currentState == state.dead) {
 
-          if (aliveNeighbors > 7 && aliveNeighbors < 12) {
+          const aboveMin = aliveNeighbors > settings.rules.birthMin;
+          const belowMax = aliveNeighbors < settings.rules.birthMax;
+
+          if (aboveMin && belowMax) {
 
             cell.nextState = state.alive;
 
           } else {
 
-            cell.nextState == state.dead;
+            cell.nextState = state.dead;
 
           }
 
         } else {
 
-          if (aliveNeighbors > 13 || aliveNeighbors < 6) {
+          const starved = aliveNeighbors < settings.rules.starvation;
+          const crowded = aliveNeighbors > settings.rules.overcrowding;
+
+          if (starved || crowded) {
 
             cell.nextState = state.dead;
 

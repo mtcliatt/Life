@@ -12,42 +12,114 @@
 		#drawingCanvas {
 			position: absolute;
 			top: 0;
-			left: 0;
+			left: 25vw;
 
-			width: 100vw;
+			width: 75vw;
 			height: 100vh;
 
 			overflow: hidden;
 		}
 
-    #controls {
-      position: absolute;
+    .controls {
+      position: fixed;
+      z-index: 1;
       top: 0;
       left: 0;
+      width: 25vw;
+      height: 100vh;
 
-      z-index: 1;
+      border-right: 2px solid white;
+      text-align: center;
+
+      background-color: #222222;
     }
+
+    .controlHeader {
+
+      color: white;
+      font-family: "Lucida Console", Monaco, monospace;
+      font-size: 6;
+
+    }
+
+    button {
+      background-color: #008CBA;
+      color: white;
+
+      border: none;
+      padding: 1px 5px;
+
+      text-align: center;
+      text-decoration: none;
+
+      display: inline;
+      font-size: 16px;
+    }
+
+    .varLabel {
+
+      display: inline;
+      font-size: 12px;
+      color: white;
+
+    }
+
+    .var {
+
+      display: inline;
+      font-size: 14px;
+      color: white;
+
+    }
+
 	</style>
 </head>
 <body>
-  <h1>Hey</h1>
 	<div id="drawingCanvas"></div>
-  <div id="controls">
+
+
+  <div class="controls">
+
+    <p class="controlHeader">Controls</p>
 
     <button id="animationButton">Toggle Animation</button>
+    <br><br>
+    <button id="randomizeButton">Randomize Cells</button>
+    <br><br>
+    <button id="resetCameraButton">Reset Camera</button>
 
     <br><br>
 
-    <button id="randomizeButton">Randomize cells</button>
-
+      <p class="controlHeader">Start Alive %</p>
+      <p class="var" id="randomnessTextField"></p>
+      <button id="decreaseRandomness">-</button>
+      <button id="increaseRandomness">+</button>
     <br><br>
 
-    <button id="increaseRandomness">+</button>
-    <input type="text" id="randomnessTextField" size="2" disabled="true">
-    <button id="decreaseRandomness">-</button>
+    <p class="varLabel">Overcrowding ></p>
+    <p class="var" id="overcrowdingTextField"></p>
+    <button id="decreaseOvercrowding">-</button>
+    <button id="increaseOvercrowding">+</button>
+    <br> <br>
+
+    <p class="varLabel">Starvation <</p>
+    <p class="var" id="starvationTextField"></p>
+    <button id="decreaseStarvation">-</button>
+    <button id="increaseStarvation">+</button>
+    <br> <br>
+
+    <button id="decreaseBirthMin">-</button>
+    <button id="increaseBirthMin">+</button>
+    <p class="var" id="birthMinTextField"></p>
+    <p class="varLabel">&lt;Birth&gt;</p>
+    <p class="var" id="birthMaxTextField"></p>
+    <button id="decreaseBirthMax">-</button>
+    <button id="increaseBirthMax">+</button>
+    <br>
+
   </div>
 
-	<script src="./three.min.js"></script>
+<script src="./three.min.js"></script>
 	<script src="./app.js"></script>
 </body>
 </html>
