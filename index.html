@@ -5,18 +5,12 @@
 	<title>Life3D - Matt Cliatt</title>
 
 	<style>
-		body {
-			background-color: black;
-		}
-
 		#drawingCanvas {
 			position: absolute;
 			top: 0;
 			left: 25vw;
-
 			width: 75vw;
 			height: 100vh;
-
 			overflow: hidden;
 		}
 
@@ -29,12 +23,22 @@
       border-right: 2px solid white;
       background-color: #222222;
       text-align: center;
+      font-family: "Lucida Console", Monaco, monospace;
     }
 
-    .controlHeader {
+    .controlLabel {
+      display: inline;
       color: white;
-      font-family: "Lucida Console", Monaco, monospace;
-      font-size: 6;
+      font-size: 14px;
+      margin: 1px;
+    }
+
+    .controlVar {
+      display: inline;
+      font-size: 14px;
+      color: white;
+      text-decoration: underline;
+      margin: 1px;
     }
 
     button {
@@ -46,19 +50,6 @@
       text-decoration: none;
       display: inline;
       font-size: 16px;
-    }
-
-    .controlLabel {
-      display: inline;
-      font-size: 12px;
-      color: white;
-    }
-
-    .controlVar {
-      display: inline;
-      font-size: 14px;
-      color: white;
-      text-decoration: underline;
     }
 
     .status {
@@ -93,50 +84,47 @@
 
     <div class="status">
       <p><u>Status</u></p>
+
       <p class="statusLabel">Animation: </p>
-      <p id="animationStatus" class="statusVar">ON</p>
-      <br>
+      <p id="animationStatus" class="statusVar">ON</p><br>
+
       <p class="statusLabel">Wrap-Around: </p>
-      <p id="wrapAroundStatus" class="statusVar">ON</p>
-      <br>
-      <p class="statusLabel">Iterations: </p>
-      <p id="iterationsStatus" class="statusVar">0</p>
-      <br>
-      <p class="statusLabel">Cells alive: </p>
-      <p id="cellsStatus" class="statusVar">0</p>
-      <br>
+      <p id="wrapAroundStatus" class="statusVar">ON</p><br>
+
       <p class="statusLabel">Stalled: </p>
-      <p id="stalledStatus" class="statusVar">No</p>
-      <br>
+      <p id="stalledStatus" class="statusVar">No</p><br><br>
+
+      <p class="statusLabel">Iterations: </p>
+      <p id="iterationsStatus" class="statusVar">0</p><br>
+
+      <p class="statusLabel">Cells alive: </p>
+      <p id="cellsStatus" class="statusVar">0</p><br>
     </div>
 
-    <br>
+    <br><br><br>
 
-    <button id="animationButton">Pause/Resume</button>
-    <br> <br>
-    <button id="wrapAroundButton">Toggle Wrap-Around</button>
-    <br> <br>
+    <button id="animationButton">Pause/Resume</button><br><br>
+    <button id="wrapAroundButton">Toggle Wrap-Around</button><br><br>
+
     <button id="randomizeButton">Reset State</button>
-    <button id="resetCameraButton">Reset Camera</button>
-    <br> <br>
+    <button id="resetCameraButton">Reset Camera</button><br><br>
+
+    <br><br>
 
     <p class="controlLabel">Initial % alive: </p>
     <p class="controlVar" id="randomnessTextField"></p>
     <button id="decreaseRandomness">-</button>
-    <button id="increaseRandomness">+</button>
-    <br><br>
+    <button id="increaseRandomness">+</button><br><br>
 
     <p class="controlLabel">Overcrowding ></p>
     <p class="controlVar" id="overcrowdingTextField"></p>
     <button id="decreaseOvercrowding">-</button>
-    <button id="increaseOvercrowding">+</button>
-    <br> <br>
+    <button id="increaseOvercrowding">+</button><br><br>
 
     <p class="controlLabel">Starvation <</p>
     <p class="controlVar" id="starvationTextField"></p>
     <button id="decreaseStarvation">-</button>
-    <button id="increaseStarvation">+</button>
-    <br> <br>
+    <button id="increaseStarvation">+</button><br><br>
 
     <button id="decreaseBirthMin">-</button>
     <button id="increaseBirthMin">+</button>
@@ -145,7 +133,6 @@
     <p class="controlVar" id="birthMaxTextField"></p>
     <button id="decreaseBirthMax">-</button>
     <button id="increaseBirthMax">+</button>
-    <br>
 
   </div>
 
