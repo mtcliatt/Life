@@ -1,27 +1,50 @@
 'use strict';
 
+
+
 /*
  * @author Matthew Cliatt
  *
- *
- *
+ * TODO:
+ * - Different geometries & materials
+ * - Auto-rotate
+ * - Triple equals
+ * - consolidate stats
+ * - show cam position in status
+ * - GitHub readme with gif and wiki quotes
  */
 const settings = {
 
+	// Size of each individual cell
 	cellSize: 1,
+
+	// Amount of space between each cell
 	cellPadding: 0.5,
-	numRows: 20,
-	numColumns: 20,
-	numLayers: 20,
+
+	// Number of cells along each row/column/layer
+	worldSize: 20,
+
+	// Percentage of cells alive when the world is created/reset
   startPercentage: 30,
+
+  // Shape and look of the individual cells
 	cellGeometry: THREE.BoxGeometry,
 	cellMaterial: THREE.MeshNormalMaterial,
+
+	// True if the cells on one side of the world should count
+	// the cells on the opposite side as neighbors
   wrapAround: true,
 
+  // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
+  	// Alive cells 'die' with too many neighbors
     overcrowding: 12,
+
+    // Alive cells 'die' with too few neighbors
     starvation: 6,
+
+    // Dead cells come alive with the right number of neighbors
     birthMin: 6,
     birthMax: 12,
 
@@ -29,12 +52,11 @@ const settings = {
 
 }
 
-// Possible cell states
-const state = {
+// Possible cell states; provides readability over just 0 or 1
+const states = {
 
 	alive: 0,
 	dead: 1,
-	tbd: 2,
 
 }
 
@@ -50,6 +72,7 @@ let isStalled;
 let camera;
 let scene;
 let renderer;
+let controls;
 
 /*
  * Set up the scene,
@@ -65,15 +88,13 @@ let renderer;
 
 	cells = [];
   aliveCells = 0;
-  totalCells = settings.numRows * settings.numColumns * settings.numLayers;
+  totalCells = Math.pow(settings.worldSize, 3);
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
 
 	camera = new THREE.PerspectiveCamera(45, width / height, 1, 100000);
-	camera.position.set(15, 35, 85);
-	camera.lookAt(new THREE.Vector3(15, 5, 0));
 
 	scene = new THREE.Scene();
 	scene.add(camera);
@@ -81,8 +102,9 @@ let renderer;
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setSize(width, height);
 	renderer.setClearColor(new THREE.Color(0, 0.12, 0.2));
-
 	container.appendChild(renderer.domElement);
+
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 	window.addEventListener('resize', () => {
 		camera.aspect = container.clientWidth / container.clientHeight;
@@ -96,19 +118,6 @@ let renderer;
 	animate();
 
 })();
-
-// This function makes it easy to add event listeners to elements
-function eventAdder(elementId, event, func) {
-
-  const element = document.getElementById(elementId);
-
-  if (element != null) {
-
-    element.addEventListener(event, func);
-
-  }
-
-}
 
 function setUpControls() {
 
@@ -127,6 +136,26 @@ function setUpControls() {
   const birthMaxTextField = document.getElementById('birthMaxTextField');
   birthMaxTextField.innerHTML = settings.rules.birthMax;
 
+  const orientCamera = (position, lookAt) => {
+
+  	return (() => {
+  		console.log('reset called');
+  		camera.position.copy(position);
+  		camera.lookAt(lookAt);
+  	});
+
+  }
+
+	const {worldSize, cellSize, cellPadding} = settings;
+	const midpoint = (worldSize * (cellSize + cellPadding) - cellPadding) / 2;
+	const midpointVector = new THREE.Vector3(midpoint, midpoint, midpoint);
+	const cameraPosition = new THREE.Vector3(midpoint, midpoint * 2, midpoint * 6);
+
+  const resetCameraPosition = orientCamera(cameraPosition, midpointVector);
+  resetCameraPosition();
+
+  controls.target.copy(midpointVector);
+
   const toggleAnimation = () => {
 
     animationOn = !animationOn;
@@ -143,40 +172,6 @@ function setUpControls() {
 
   }
 
-  const randomizeStates = () => {
-
-    iterations = 0;
-    isStalled = false;
-    aliveCells = 0;
-
-    cells.forEach(column => {
-
-      column.forEach(row => {
-
-        row.forEach(cell => {
-
-          if (Math.random() < (settings.startPercentage / 100)) {
-
-            cell.currentState = state.alive;
-            cell.visible = true;
-
-          } else {
-
-            cell.currentState = state.dead;
-            cell.visible = false;
-
-          }
-
-          cell.nextState = state.tbd;
-
-        });
-
-      });
-
-    });
-
-  };
-
   const updateStartPercentage = diff => {
 
     settings.startPercentage += diff;
@@ -187,9 +182,6 @@ function setUpControls() {
     textField.innerHTML = settings.startPercentage + '%';
 
   };
-
-  const increaseStartPercentage = () => { updateStartPercentage(10); }
-  const decreaseStartPercentage = () => { updateStartPercentage(-10); }
 
   const updateRule = (rule, diff) => {
 
@@ -202,6 +194,9 @@ function setUpControls() {
 
   }
 
+  const increaseStartPercentage = () => { updateStartPercentage(10); }
+  const decreaseStartPercentage = () => { updateStartPercentage(-10); }
+
   const increaseOvercrowding = () => { updateRule('overcrowding', 1); }
   const decreaseOvercrowding = () => { updateRule('overcrowding', -1); }
   const increaseStarvation = () => { updateRule('starvation', 1); }
@@ -211,12 +206,18 @@ function setUpControls() {
   const increaseBirthMax = () => { updateRule('birthMax', 1); }
   const decreaseBirthMax = () => { updateRule('birthMax', -1); }
 
-  const resetCameraPosition = () => {
+	 // This function makes it easy to add event listeners to elements
+	const eventAdder = (elementId, event, func) => {
 
-    camera.position.set(15, 35, 85);
-    camera.lookAt(new THREE.Vector3(15, 5, 0));
+	  const element = document.getElementById(elementId);
 
-  }
+	  if (element != null) {
+
+	  	element.addEventListener(event, func);
+
+	  }
+
+	}
 
   eventAdder('animationButton', 'click', toggleAnimation);
   eventAdder('wrapAroundButton', 'click', toggleWrapAround);
@@ -253,16 +254,56 @@ function updateStatus() {
 
 }
 
+// TODO: Collect stats in one single object
+// TODO: make this function
+function resetStats() {
+
+}
+
+function randomizeStates() {
+
+	resetStats();
+
+  cells.forEach(column => {
+
+    column.forEach(row => {
+
+      row.forEach(cell => {
+
+        if (Math.random() < (settings.startPercentage / 100)) {
+
+          cell.currentState = states.alive;
+          cell.visible = true;
+
+        } else {
+
+          cell.currentState = states.dead;
+          cell.visible = false;
+
+        }
+
+        // This should always get reset to a certain value before being used.
+        // If this is still null when used later, something went wrong.
+        cell.nextState = null;
+
+      });
+
+    });
+
+  });
+
+};
+
 /*
- * Create the cells in the scene
+ * TODO: Implement different geometries
  */
 function drawScene() {
 
-	const spacing = settings.cellSize + settings.cellPadding;
+	// Grab the cellSize and cellPadding from settings, and store them shorthand
+	const {cellSize: size, cellPadding: padding} = settings;
 
 	const createCell = () => {
 
-		const {cellSize: size} = settings;
 		const geometry = new settings.cellGeometry(size, size, size);
 		const material = new settings.cellMaterial();
 
@@ -270,38 +311,25 @@ function drawScene() {
 
 	}
 
-	for (let xIndex = 0; xIndex < settings.numColumns; xIndex++) {
+	const getOffset = (index) => index * (size + padding);
+
+	for (let xIndex = 0; xIndex < settings.worldSize; xIndex++) {
 
 		cells.push([]);
 
-		for (let yIndex = 0; yIndex < settings.numRows; yIndex++) {
+		for (let yIndex = 0; yIndex < settings.worldSize; yIndex++) {
 
 			cells[xIndex].push([]);
 
-			for (let zIndex = 0; zIndex < settings.numLayers; zIndex++) {
+			for (let zIndex = 0; zIndex < settings.worldSize; zIndex++) {
 
 				const cell = createCell();
+				cell.position.set(getOffset(xIndex), getOffset(yIndex), getOffset(zIndex));
+
 				cells[xIndex][yIndex].push(cell);
-				scene.add(cell);
+				scene.add(cell)
 
-				cell.position.set(xIndex * spacing, yIndex * spacing, zIndex * spacing);
-				cell.nextState = state.tbd;
-
-        if (Math.random() <= (settings.startPercentage / 100)) {
-
-          cell.currentState = state.alive;
-
-        } else {
-
-          cell.currentState = state.dead;
-
-        }
-
-        if (cell.currentState == state.dead) {
-
-          cell.visible = false;
-
-        }
+				randomizeStates();
 
 			}
 
@@ -327,9 +355,8 @@ function determineNextState() {
 
 				const cell = cells[column][row][layer];
 
-				let nextState = state.tbd;
+				let nextState = null;
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
-
 
         /*
          * If a cell is dead, it becomes alive if it has
@@ -340,18 +367,18 @@ function determineNextState() {
          * between settings.rules.starvation and settings.rules.overcrowding
          * neighbors, otherwise it dies.
          */
-        if (cell.currentState == state.dead) {
+        if (cell.currentState == states.dead) {
 
           const aboveMin = aliveNeighbors > settings.rules.birthMin;
           const belowMax = aliveNeighbors < settings.rules.birthMax;
 
           if (aboveMin && belowMax) {
 
-            cell.nextState = state.alive;
+            cell.nextState = states.alive;
 
           } else {
 
-            cell.nextState = state.dead;
+            cell.nextState = states.dead;
 
           }
 
@@ -362,11 +389,11 @@ function determineNextState() {
 
           if (starved || crowded) {
 
-            cell.nextState = state.dead;
+            cell.nextState = states.dead;
 
           } else {
 
-            cell.nextState = state.alive;
+            cell.nextState = states.alive;
 
           }
 
@@ -399,9 +426,9 @@ function goToNextState() {
 			row.forEach(cell => {
 
         cell.currentState = cell.nextState;
-        cell.nextState = state.tbd;
+        cell.nextState = null;
 
-        if (cell.currentState == state.alive) {
+        if (cell.currentState == states.alive) {
 
           cell.visible = true;
           aliveCells++;
@@ -411,6 +438,8 @@ function goToNextState() {
           cell.visible = false;
 
         }
+
+        //cell.rotateOnAxis(new THREE.Vector3(0.57735, 0.57735, 0.57735), 0.1);
 
       });
 
@@ -470,7 +499,7 @@ function countAliveNeighbors(column, row, layer) {
 
         const neighbor = cells[nColumn][nRow][nLayer];
 
-        if (neighbor.currentState == state.alive) { count++; }
+        if (neighbor.currentState == states.alive) { count++; }
 
 			}
 
@@ -501,6 +530,7 @@ function animate() {
 
   }
 
+  controls.update();
   updateStatus();
 
 	renderer.render(scene, camera);
