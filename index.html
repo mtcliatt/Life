@@ -34,20 +34,16 @@
     }
 
     .controlVar {
-      display: inline;
-      font-size: 14px;
-      color: white;
       text-decoration: underline;
-      margin: 1px;
     }
 
     button {
       background-color: #004466;
       color: white;
       border: none;
+      border-radius: 5px;
       padding: 1px 5px;
       text-align: center;
-      text-decoration: none;
       display: inline;
       font-size: 16px;
     }
@@ -69,12 +65,6 @@
       display: inline;
     }
 
-    .statusVar {
-      font-size: 12px;
-      margin: 1px;
-      display: inline;
-    }
-
 	</style>
 </head>
 <body>
@@ -86,19 +76,19 @@
       <p><u>Status</u></p>
 
       <p class="statusLabel">Animation: </p>
-      <p id="animationStatus" class="statusVar">ON</p><br>
+      <p id="animationStatus" class="statusLabel">ON</p><br>
 
       <p class="statusLabel">Wrap-Around: </p>
-      <p id="wrapAroundStatus" class="statusVar">ON</p><br>
+      <p id="wrapAroundStatus" class="statusLabel">ON</p><br>
 
       <p class="statusLabel">Stalled: </p>
-      <p id="stalledStatus" class="statusVar">No</p><br><br>
+      <p id="stalledStatus" class="statusLabel">No</p><br><br>
 
       <p class="statusLabel">Iterations: </p>
-      <p id="iterationsStatus" class="statusVar">0</p><br>
+      <p id="iterationsStatus" class="statusLabel">0</p><br>
 
       <p class="statusLabel">Cells alive: </p>
-      <p id="cellsStatus" class="statusVar">0</p><br>
+      <p id="cellsStatus" class="statusLabel">0</p><br>
     </div>
 
     <br><br><br>
@@ -112,25 +102,25 @@
     <br><br>
 
     <p class="controlLabel">Initial % alive: </p>
-    <p class="controlVar" id="randomnessTextField"></p>
+    <p class="controlLabel controlVar" id="randomnessTextField"></p>
     <button id="decreaseRandomness">-</button>
     <button id="increaseRandomness">+</button><br><br>
 
     <p class="controlLabel">Overcrowding ></p>
-    <p class="controlVar" id="overcrowdingTextField"></p>
+    <p class="controlLabel controlVar" id="overcrowdingTextField"></p>
     <button id="decreaseOvercrowding">-</button>
     <button id="increaseOvercrowding">+</button><br><br>
 
     <p class="controlLabel">Starvation <</p>
-    <p class="controlVar" id="starvationTextField"></p>
+    <p class="controlLabel controlVar" id="starvationTextField"></p>
     <button id="decreaseStarvation">-</button>
     <button id="increaseStarvation">+</button><br><br>
 
     <button id="decreaseBirthMin">-</button>
     <button id="increaseBirthMin">+</button>
-    <p class="controlVar" id="birthMinTextField"></p>
+    <p class="controlLabel controlVar" id="birthMinTextField"></p>
     <p class="controlLabel">&lt; Birth &gt;</p>
-    <p class="controlVar" id="birthMaxTextField"></p>
+    <p class="controlLabel controlVar" id="birthMaxTextField"></p>
     <button id="decreaseBirthMax">-</button>
     <button id="increaseBirthMax">+</button>
 
