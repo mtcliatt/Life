@@ -1,5 +1,11 @@
 'use strict';
 
+/*
+ * @author Matthew Cliatt
+ *
+ *
+ *
+ */
 const settings = {
 
 	cellSize: 1,
@@ -32,14 +38,11 @@ const state = {
 
 }
 
-// Grid of cells
 let cells;
 let aliveCells;
 let totalCells;
 
-// Number of cycles since last restart
 let iterations;
-
 let animationOn;
 let isStalled;
 
@@ -489,6 +492,12 @@ function animate() {
 
     determineNextState();
     goToNextState();
+
+    if (isStalled) {
+
+    	animationOn = false;
+
+    }
 
   }
 
