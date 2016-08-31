@@ -91,6 +91,61 @@ let cellArray;
 // Contains each cell so that the group of cells can be manipulated at once.
 let cellParent;
 
+/* Helper function - writeTextField()
+ * Sets the innerHTML of the element specified to value.
+ */
+function writeTextField(textFieldId, value) {
+
+  const textField = document.getElementById(textFieldId);
+
+  if (textField !== null) {
+
+    textField.innerHTML = value;
+
+  }
+
+}
+
+
+/**
+ * Helper function - clampAndReplace()
+ * Creates a function which accepts a single param 'value'.
+ * The created function returns minReplacement if value is < min,
+ * returns maxReplacement if value is > max, otherwise returns value.
+ */
+const clampAndReplace = (min, minReplacement, max, maxReplacement) => {
+
+	return value => {
+
+		if (value < min) {
+
+			return minReplacement;
+
+		} else if (value > max) {
+
+			return maxReplacement;
+
+		} else {
+
+			return value;
+
+		}
+
+	};
+
+}
+
+// Simple clampers, returns the given value within the specified bounds.
+const clamp = (min, max) => clampAndReplace(min, min, max, max);
+const clampPercentage = clamp(0, 100);
+const clampRule = clamp(0, 27);
+
+// Returns the value if no wrapping is needed, else returns the value set to
+// opposite side of the cell array.
+const wrapClamper = clampAndReplace(0, settings.worldSize - 1, settings.worldSize - 1, 0);
+
+// If a value is passed to wrapClamper and doesn't change, it must be within bounds.
+const inBounds = value => value === wrapClamper(value);
 
 /**
  * init() - Starts the show!
@@ -102,7 +157,7 @@ let cellParent;
  * 5) animate() - Starts rendering the scene and updating the world.
  *
  */
-(function init() {
+(() => {
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
@@ -153,18 +208,6 @@ function resetStats() {
 
 }
 
-function writeTextField(textFieldId, value) {
-
-  const textField = document.getElementById(textFieldId);
-
-  if (textField !== null) {
-
-    textField.innerHTML = value;
-
-  }
-
-}
-
 function setUpGUIControls() {
 
   writeTextField('startPercentageTextField', settings.startPercentage + '%');
@@ -179,34 +222,26 @@ function setUpGUIControls() {
     camera.lookAt(new THREE.Vector3(0, 0, 0));
   }
 
-  // clamper returns a function which accepts a single value and returns:
-  // value if min < value < max; max if value > max; min if value < min
-  const clamper = (min, max) => {
-
-    return value => Math.max(min, Math.min(value, max));
-
-  }
-
-  // updater returns a function which only needs the name of a variable,
-  // and the amount to change it by. With currying, the parent of the variable,
-  // the acceptable range for the value, and the suffix to add to the text
-  // field is adjustable.
-  const updater = (parent, lowerBound, upperBound, suffix = '') => {
+  /**
+   * Returns a function which only needs the name of a variable,
+   * and the amount to change it by.
+   */
+  const updater = (parent, clamper, suffix = '') => {
 
     return (setting, diff) => {
 
-      parent[setting] = clamper(lowerBound, upperBound)(parent[setting] + diff);
+      parent[setting] = clamper(parent[setting] + diff);
       writeTextField(setting + 'TextField', parent[setting] + '' + suffix);
 
     };
 
   };
 
-  const settingUpdater = updater(settings, 0, 100, '%');
+  const settingUpdater = updater(settings, clampPercentage, '%');
   const increaseSetting = setting => settingUpdater(setting, 10);
   const decreaseSetting = setting => settingUpdater(setting, -10);
 
-  const ruleUpdater = updater(settings.rules, 0, 27);
+  const ruleUpdater = updater(settings.rules, clampRule);
   const increaseRule = rule => ruleUpdater(rule, 1);
   const decreaseRule = rule => ruleUpdater(rule, -1);
 
@@ -252,12 +287,7 @@ function setUpGUIControls() {
 
 }
 
-/*
- * This function could be made more effecient by keeping track
- * of previous values for these variables.
- * If the values haven't changed, then it shouldn't go to the DOM
- * each frame to grab the elements.
- */
+
 function updateStatusMenu() {
 
 	const cellsText = Math.round(100 * stats.aliveCells / stats.totalCells) + '%'
@@ -462,34 +492,6 @@ function countAliveNeighbors(column, row, layer) {
   // Directions
 	const dirs = [0, 1, -1];
 	let count = 0;
-
-  const clamper = (min, minReplacement, max, maxReplacement) => {
-
-		return value => {
-
-			if (value < min) {
-
-				return minReplacement;
-
-			} else if (value > max) {
-
-				return maxReplacement;
-
-			} else {
-
-				return value;
-
-			}
-
-		};
-
-	}
-
-	// If settings.wrapAround, use this to count neighbors on opposite sides.
-	const wrapClamper = clamper(0, settings.worldSize - 1, settings.worldSize - 1, 0);
-
-	// If !settings.wrapAround, use this to test if value is within cellArray bounds.
-	const inBounds = value => value === wrapClamper(value);
 
 	for (let x = 0; x < dirs.length; x++) {
 
