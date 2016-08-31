@@ -45,15 +45,15 @@ const settings = {
   // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
-  // Alive cells 'die' with too many neighbors
-  overcrowding: 12,
+	  // Alive cells 'die' with too many neighbors
+	  overcrowding: 12,
 
-  // Alive cells 'die' with too few neighbors
-  starvation: 6,
+	  // Alive cells 'die' with too few neighbors
+	  starvation: 6,
 
-  // Dead cells come alive with the right number of neighbors
-  birthMin: 6,
-  birthMax: 12,
+	  // Dead cells come alive with the right number of neighbors
+	  birthMin: 6,
+	  birthMax: 12,
   },
 
 };
@@ -83,14 +83,15 @@ const states = {
 
 };
 
-let cells;
-let world;
-
 // THREE components
 let camera;
 let scene;
 let renderer;
 let controls;
+
+// All individual cells
+let cellArray;
+let cellParent;
 
 /*
  * Set up the scene,
@@ -99,10 +100,7 @@ let controls;
  */
 (function init() {
 
-  resetStats();
-
-  world = new THREE.Object3D();
-	cells = [];
+	cellArray = [];
   stats.totalCells = Math.pow(settings.worldSize, 3);
 
 	const container = document.getElementById('drawingCanvas');
@@ -113,7 +111,6 @@ let controls;
 
 	scene = new THREE.Scene();
 	scene.add(camera);
-	scene.add(world);
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setSize(width, height);
@@ -146,8 +143,8 @@ let controls;
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.copy(midpointVector);
 
-  world.position.copy(new THREE.Vector3(39.5, 0, 39.5));
-
+  camera.reset();
+  resetStats();
   setUpGUIControls();
 	createWorld();
 	animate();
@@ -164,25 +161,26 @@ function resetStats() {
 
 }
 
-function setUpGUIControls() {
+function writeTextField(textFieldId, value) {
 
-  const writeTextField = (textFieldId, value) => {
+  const textField = document.getElementById(textFieldId);
 
-    const textField = document.getElementById(textFieldId + 'TextField');
+  if (textField !== null) {
 
-    if (textField !== null) {
-
-      textField.innerHTML = value;
-
-    }
+    textField.innerHTML = value;
 
   }
 
-  writeTextField('startPercentage', settings.startPercentage + '%');
-  writeTextField('speed', settings.speed + '%');
-  writeTextField('overcrowding', settings.rules.overcrowding);
-  writeTextField('starvation', settings.rules.starvation);
-  writeTextField('birthMin', settings.rules.birthMin);
+}
+
+function setUpGUIControls() {
+
+  writeTextField('startPercentageTextField', settings.startPercentage + '%');
+  writeTextField('speedTextField', settings.speed + '%');
+  writeTextField('overcrowdingTextField', settings.rules.overcrowding);
+  writeTextField('starvationTextField', settings.rules.starvation);
+  writeTextField('birthMinTextField', settings.rules.birthMin);
+  writeTextField('birthMaxTextField', settings.rules.birthMax);
 
   // bounder returns a function which accepts a single value and returns:
   // value if min < value < max; max if value < max; min if value < min
@@ -196,19 +194,12 @@ function setUpGUIControls() {
   // and the amount to change it by. With currying, the parent of the variable,
   // the acceptable range for the value, and the suffix to add to the text
   // field is adjustable.
-  const updater = (parent, lowerBound, upperBound, suffix) => {
+  const updater = (parent, lowerBound, upperBound, suffix = '') => {
 
     return (setting, diff) => {
 
       parent[setting] = bounder(lowerBound, upperBound)(parent[setting] + diff);
-
-      const textField = document.getElementById(setting + 'TextField');
-
-      if (textField !== null) {
-
-        textField.innerHTML = parent[setting] + '' + suffix;
-
-      }
+      writeTextField(setting + 'TextField', parent[setting] + '' + suffix);
 
     };
 
@@ -218,21 +209,15 @@ function setUpGUIControls() {
   const increaseSetting = setting => settingUpdater(setting, 10);
   const decreaseSetting = setting => settingUpdater(setting, -10);
 
-  const ruleUpdater = updater(settings.rules, 0, 27, '');
+  const ruleUpdater = updater(settings.rules, 0, 27);
   const increaseRule = rule => ruleUpdater(rule, 1);
   const decreaseRule = rule => ruleUpdater(rule, -1);
 
   const toggleSetting = (setting) => {
 
     settings[setting] = !settings[setting];
-
-    const textField = document.getElementById(setting + 'Status');
-
-    if (textField !== null) {
-
-      textField.innerHTML = settings[setting] ? 'ON' : 'OFF';
-
-    }
+    const text = settings[setting] ? 'ON' : 'OFF';
+    writeTextField(setting + 'Status', text);
 
   }
 
@@ -275,24 +260,21 @@ function setUpGUIControls() {
  * This function could be made more effecient by keeping track
  * of previous values for these variables.
  * If the values haven't changed, then it shouldn't go to the DOM
- * each frame.
+ * each frame to grab the elements.
  */
 function updateStatusMenu() {
 
-  const iterationsTextField = document.getElementById('iterationsStatus');
-  iterationsTextField.innerHTML = stats.iterations;
+	const cellsText = Math.round(100 * stats.aliveCells / stats.totalCells) + '%'
 
-  const cellsTextField = document.getElementById('cellsStatus');
-  cellsTextField.innerHTML = Math.round(100 * stats.aliveCells / stats.totalCells) + '%';
-
-  const stalledStatus = document.getElementById('stalledStatus');
-  stalledStatus.innerHTML = stats.isStalled ? 'Yes' : 'No';
+	writeTextField('iterationsStatus', stats.iterations);
+	writeTextField('cellsStatus', cellsText);
+	writeTextField('stalledStatus', stats.isStalled);
 
 }
 
 function randomizeStates() {
 
-  cells.forEach(column => {
+  cellArray.forEach(column => {
 
     column.forEach(row => {
 
@@ -340,20 +322,21 @@ function createWorld() {
 
 	for (let xIndex = 0; xIndex < settings.worldSize; xIndex++) {
 
-		cells.push([]);
+		cellArray.push([]);
 
 		for (let yIndex = 0; yIndex < settings.worldSize; yIndex++) {
 
-			cells[xIndex].push([]);
+			cellArray[xIndex].push([]);
 
 			for (let zIndex = 0; zIndex < settings.worldSize; zIndex++) {
 
 				const cell = createCell();
 				cell.position.set(getOffset(xIndex), getOffset(yIndex), getOffset(zIndex));
 
-				cells[xIndex][yIndex].push(cell);
+				cell.geometry.center();
+
+				cellArray[xIndex][yIndex].push(cell);
 				scene.add(cell);
-        world.add(cell);
 
 				randomizeStates();
 
@@ -373,13 +356,13 @@ function determineNextState() {
 
   let stateChanged = false;
 
-	for (let column = 0; column < cells.length; column++) {
+	for (let column = 0; column < cellArray.length; column++) {
 
-		for (let row = 0; row < cells[column].length; row++) {
+		for (let row = 0; row < cellArray[column].length; row++) {
 
-			for (let layer = 0; layer < cells[column][row].length; layer++) {
+			for (let layer = 0; layer < cellArray[column][row].length; layer++) {
 
-				const cell = cells[column][row][layer];
+				const cell = cellArray[column][row][layer];
 
 				let nextState = null;
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
@@ -445,7 +428,7 @@ function goToNextState() {
 
   stats.aliveCells = 0;
 
-	cells.forEach(column => {
+	cellArray.forEach(column => {
 
 		column.forEach(row => {
 
@@ -501,21 +484,21 @@ function countAliveNeighbors(column, row, layer) {
 
         if (settings.wrapAroundOn) {
 
-          if (nColumn < 0) { nColumn = cells.length - 1; }
-          if (nColumn >= cells.length) { nColumn = 0; }
+          if (nColumn < 0) { nColumn = cellArray.length - 1; }
+          if (nColumn >= cellArray.length) { nColumn = 0; }
 
-          if (nRow < 0) { nRow = cells[nColumn].length - 1; }
-          if (nRow >= cells[nColumn].length) { nRow = 0; }
+          if (nRow < 0) { nRow = cellArray[nColumn].length - 1; }
+          if (nRow >= cellArray[nColumn].length) { nRow = 0; }
 
-          if (nLayer < 0) { nLayer = cells[nColumn][nRow].length - 1; }
-          if (nLayer >= cells[nColumn][nRow].length) { nLayer = 0; }
+          if (nLayer < 0) { nLayer = cellArray[nColumn][nRow].length - 1; }
+          if (nLayer >= cellArray[nColumn][nRow].length) { nLayer = 0; }
 
         } else {
 
           // Make sure index is within array bounds.
-          if (nColumn < 0 || nColumn >= cells.length ||
-              nRow < 0 || nRow >= cells[nColumn].length ||
-              nLayer < 0 || nLayer >= cells[nColumn][nRow].length) {
+          if (nColumn < 0 || nColumn >= cellArray.length ||
+              nRow < 0 || nRow >= cellArray[nColumn].length ||
+              nLayer < 0 || nLayer >= cellArray[nColumn][nRow].length) {
 
             continue;
 
@@ -523,7 +506,7 @@ function countAliveNeighbors(column, row, layer) {
 
         }
 
-        const neighbor = cells[nColumn][nRow][nLayer];
+        const neighbor = cellArray[nColumn][nRow][nLayer];
 
         if (neighbor.currentState == states.alive) { count++; }
 
@@ -558,8 +541,6 @@ function animate() {
     }
 
     if (settings.rotationOn) {
-
-      world.rotation.y += 0.1;
 
     }
 
