@@ -62,7 +62,7 @@ const settings = {
  */
 const stats = {
 
-  aliveCells:
+  aliveCells: 0,
   lastCycleTime: 0,
   iterations: 0,
   isStalled: false,
@@ -107,8 +107,9 @@ let cellParent;
 
 	camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
 
-	// Sets the camera up and away from the cells to get a better view.
-	camera.startingPosition = getWorldMidpoint().multiply(new THREE.Vector3(0, 3, 6));
+	// Sets the camera up and away from the cells to) get a better view.
+	const worldLength = settings.worldSize * (settings.cellSize + settings.cellPadding);
+	camera.startingPosition = new THREE.Vector3(0, worldLength * 2, worldLength * 4);
 	camera.position.copy(camera.startingPosition);
 	camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -176,7 +177,7 @@ function writeTextField(textFieldId, value) {
 function setUpGUIControls() {
 
   writeTextField('startPercentageTextField', settings.startPercentage + '%');
-  writeTextField('speedTextField', settings.cycleSpeed + '%');
+  writeTextField('cycleSpeedTextField', settings.cycleSpeed + '%');
   writeTextField('overcrowdingTextField', settings.rules.overcrowding);
   writeTextField('starvationTextField', settings.rules.starvation);
   writeTextField('birthMinTextField', settings.rules.birthMin);
@@ -378,18 +379,18 @@ function determineNextState() {
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
 
 				// This logic is detailed in the comments on settings.rules
-        if (cell.currentState === states.dead) {
+        if (cell.currentState === cellStates.dead) {
 
           const aboveMin = aliveNeighbors > settings.rules.birthMin;
           const belowMax = aliveNeighbors < settings.rules.birthMax;
 
           if (aboveMin && belowMax) {
 
-            cell.nextState = states.alive;
+            cell.nextState = cellStates.alive;
 
           } else {
 
-            cell.nextState = states.dead;
+            cell.nextState = cellStates.dead;
 
           }
 
@@ -400,11 +401,11 @@ function determineNextState() {
 
           if (starved || crowded) {
 
-            cell.nextState = states.dead;
+            cell.nextState = cellStates.dead;
 
           } else {
 
-            cell.nextState = states.alive;
+            cell.nextState = cellStates.alive;
 
           }
 
@@ -440,7 +441,7 @@ function goToNextState() {
         cell.currentState = cell.nextState;
         cell.nextState = null;
 
-        if (cell.currentState === states.alive) {
+        if (cell.currentState === cellStates.alive) {
 
           cell.visible = true;
           stats.aliveCells++;
@@ -531,7 +532,7 @@ function countAliveNeighbors(column, row, layer) {
 
         const currentNeighborCell = cellArray[nColumn][nRow][nLayer];
 
-        if (currentNeighborCell.currentState === states.alive) {
+        if (currentNeighborCell.currentState === cellStates.alive) {
 
         	count++;
 
