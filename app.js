@@ -91,10 +91,11 @@ let cellArray;
 // Contains each cell so that the group of cells can be manipulated at once.
 let cellParent;
 
-/* Helper function - writeTextField()
+/**
+ * Helper function - writeTextField()
  * Sets the innerHTML of the element specified to value.
  */
-function writeTextField(textFieldId, value) {
+const writeTextField = (textFieldId, value) => {
 
   const textField = document.getElementById(textFieldId);
 
