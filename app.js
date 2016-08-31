@@ -4,18 +4,17 @@
  * @author Matthew Cliatt
  *
  * TODO:
- * - Different geometries & materials
+ * - Different materials
  * - Auto-rotate
  * - Add speed
  * - Triple equals
- * - consolidate stats
  * - show cam position in status
  * - GitHub readme with gif and wiki quotes
  */
 const settings = {
 
 	// Size of each individual cell
-	cellSize: 1,
+	cellSize: 2,
 
 	// Amount of space between each cell
 	cellPadding: 1,
@@ -26,8 +25,7 @@ const settings = {
 	// Percentage of cells alive when the world is created/reset
   startPercentage: 30,
 
-  // Shape and look of the individual cells
-	cellGeometry: THREE.BoxGeometry,
+  // Look of the individual cells
 	cellMaterial: THREE.MeshNormalMaterial,
 
 	// True if the cells on one side of the world should count
@@ -40,21 +38,43 @@ const settings = {
   // True if the collection of cells should rotate around their midpoint
   rotationOn: true,
 
+  // Controls how many frames are skipped before next iteration is shown.
+  // When speed is 100, no frames are skipped, 50 - 5 frames are skipped,
+  // 0 - 10 frames are skipped. Speed is a 0 - 100 % value.
+  speed: 30,
+
   // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
-  	// Alive cells 'die' with too many neighbors
-    overcrowding: 12,
+  // Alive cells 'die' with too many neighbors
+  overcrowding: 12,
 
-    // Alive cells 'die' with too few neighbors
-    starvation: 6,
+  // Alive cells 'die' with too few neighbors
+  starvation: 6,
 
-    // Dead cells come alive with the right number of neighbors
-    birthMin: 6,
-    birthMax: 12,
+  // Dead cells come alive with the right number of neighbors
+  birthMin: 6,
+  birthMax: 12,
   },
 
-}
+};
+
+const stats = {
+
+  aliveCells: 0,
+  totalCells: 0,
+
+  // Frames refers to the number of frames rendered by Three.js
+  frames: 0,
+
+  // Iterations refers to the number of cycles since the game began
+  iterations: 0,
+
+  // isStalled is set to true if the game reaches a state it can not leave;
+  // i.e. a state that produces itself.
+  isStalled: false,
+
+};
 
 // Possible cell states; provides readability over just 0 or 1
 const states = {
@@ -62,15 +82,10 @@ const states = {
 	alive: 0,
 	dead: 1,
 
-}
+};
 
 let cells;
-let aliveCells;
-let totalCells;
 let world;
-
-let iterations;
-let isStalled;
 
 // THREE components
 let camera;
@@ -85,20 +100,11 @@ let controls;
  */
 (function init() {
 
-  settings.animationOn = true;
-  settings.rotationOn = true;
-
-  iterations = 0;
-  aliveCells = 0;
-  isStalled = false;
-
-  //resetStats();
-
-	cells = [];
-  aliveCells = 0;
-  totalCells = Math.pow(settings.worldSize, 3);
+  resetStats();
 
   world = new THREE.Object3D();
+	cells = [];
+  stats.totalCells = Math.pow(settings.worldSize, 3);
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
@@ -146,10 +152,23 @@ let controls;
 
 })();
 
+function resetStats() {
+
+  stats.iterations = 0;
+  stats.frames = 0;
+  stats.aliveCells = 0;
+  stats.totalCells = 0;
+  stats.isStalled = false;
+
+}
+
 function setUpGUIControls() {
 
   const percentageTextField = document.getElementById('startPercentageTextField');
   percentageTextField.innerHTML = settings.startPercentage + '%';
+
+  const speedTextField = document.getElementById('speedTextField');
+  speedTextField.innerHTML = settings.speed + '%';
 
   const overcrowdingTextField = document.getElementById('overcrowdingTextField');
   overcrowdingTextField.innerHTML = settings.rules.overcrowding;
@@ -195,12 +214,15 @@ function setUpGUIControls() {
 
     return (setting, diff) => {
 
-      console.log('here!');
-
       parent[setting] = bounder(lowerBound, upperBound)(parent[setting] + diff);
 
       const textField = document.getElementById(setting + 'TextField');
-      textField.innerHTML = parent[setting] + '' + suffix;
+
+      if (textField !== null) {
+
+        textField.innerHTML = parent[setting] + '' + suffix;
+
+      }
 
     };
 
@@ -247,25 +269,25 @@ function setUpGUIControls() {
 
 }
 
+/*
+ * This function could be made more effecient by keeping track
+ * of previous values for these variables.
+ * If the values haven't changed, then it shouldn't go to the DOM
+ * each frame.
+ */
 function updateStatus() {
 
   const animationTextField = document.getElementById('animationStatus');
   animationTextField.innerHTML = settings.animationOn ? 'ON' : 'OFF';
 
   const iterationsTextField = document.getElementById('iterationsStatus');
-  iterationsTextField.innerHTML = iterations;
+  iterationsTextField.innerHTML = stats.iterations;
 
   const cellsTextField = document.getElementById('cellsStatus');
-  cellsTextField.innerHTML = Math.round(100 * aliveCells / totalCells) + '%';
+  cellsTextField.innerHTML = Math.round(100 * stats.aliveCells / stats.totalCells) + '%';
 
   const stalledStatus = document.getElementById('stalledStatus');
-  stalledStatus.innerHTML = isStalled ? 'Yes' : 'No';
-
-}
-
-// TODO: Collect stats in one single object
-// TODO: make this function
-function resetStats() {
+  stalledStatus.innerHTML = stats.isStalled ? 'Yes' : 'No';
 
 }
 
@@ -301,9 +323,6 @@ function randomizeStates() {
 
 };
 
-/*
- * TODO: Implement different geometries
- */
 function createWorld() {
 
 	// Grab the cellSize and cellPadding from settings, and store them shorthand
@@ -311,7 +330,7 @@ function createWorld() {
 
 	const createCell = () => {
 
-		const geometry = new settings.cellGeometry(size, size, size);
+		const geometry = new THREE.BoxGeometry(size, size, size);
 		const material = new settings.cellMaterial();
 
 		return new THREE.Mesh(geometry, material);
@@ -418,13 +437,13 @@ function determineNextState() {
 
 	}
 
-  isStalled = !stateChanged;
+  stats.isStalled = !stateChanged;
 
 }
 
 function goToNextState() {
 
-  aliveCells = 0;
+  stats.aliveCells = 0;
 
 	cells.forEach(column => {
 
@@ -438,7 +457,7 @@ function goToNextState() {
         if (cell.currentState == states.alive) {
 
           cell.visible = true;
-          aliveCells++;
+          stats.aliveCells++;
 
         } else {
 
@@ -522,17 +541,32 @@ function animate() {
 
 	requestAnimationFrame(animate);
 
+  if (settings.rotationOn) {
+
+    //world.rotate();
+
+  }
+
   if (settings.animationOn) {
 
-    iterations++;
+    const framesToSkip = 10 - (settings.speed / 10);
+    const readyForIteration = stats.frames % framesToSkip == 0;
 
-    determineNextState();
-    goToNextState();
+    if (readyForIteration) {
+
+      stats.iterations++;
+
+      determineNextState();
+      goToNextState();
+
+    }
 
   }
 
   controls.update();
   updateStatus();
+
+  stats.frames++;
 
 	renderer.render(scene, camera);
 
