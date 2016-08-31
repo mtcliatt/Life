@@ -37,6 +37,9 @@ const settings = {
   // True if the collection of cells should rotate around their midpoint
   rotationOn: true,
 
+  // Controls the speed of rotation.
+  rotationSpeed: 0.01,
+
   /* Controls how many frames are skipped before next iteration is shown.
    * 0 - 10 frames are skipped. Speed is a 0 - 100 % value.
    * When speed is 100, 0 frames are skipped,
@@ -556,7 +559,7 @@ function animate() {
 
     if (settings.rotationOn) {
 
-    	cellParent.rotation.y += 0.1;
+    	cellParent.rotation.y += settings.rotationSpeed;
 
     }
 
