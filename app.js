@@ -85,9 +85,12 @@ let scene;
 let renderer;
 let controls;
 
-// All individual cells
+// Holds each cell for referencing.
 let cellArray;
+
+// Contains each cell so that the group of cells can be manipulated at once.
 let cellParent;
+
 
 /**
  * init() - Starts the show!
