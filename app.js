@@ -1,13 +1,12 @@
 'use strict';
 
-
-
 /*
  * @author Matthew Cliatt
  *
  * TODO:
  * - Different geometries & materials
  * - Auto-rotate
+ * - Add speed
  * - Triple equals
  * - consolidate stats
  * - show cam position in status
@@ -19,7 +18,7 @@ const settings = {
 	cellSize: 1,
 
 	// Amount of space between each cell
-	cellPadding: 0.5,
+	cellPadding: 1,
 
 	// Number of cells along each row/column/layer
 	worldSize: 20,
@@ -35,6 +34,12 @@ const settings = {
 	// the cells on the opposite side as neighbors
   wrapAround: true,
 
+  // True if world is iterating through cycles
+  animationOn: true,
+
+  // True if the collection of cells should rotate around their midpoint
+  rotationOn: true,
+
   // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
@@ -47,7 +52,6 @@ const settings = {
     // Dead cells come alive with the right number of neighbors
     birthMin: 6,
     birthMax: 12,
-
   },
 
 }
@@ -63,9 +67,9 @@ const states = {
 let cells;
 let aliveCells;
 let totalCells;
+let world;
 
 let iterations;
-let animationOn;
 let isStalled;
 
 // THREE components
@@ -76,19 +80,25 @@ let controls;
 
 /*
  * Set up the scene,
- *) draw the cells,
+ * draw the cells,
  * start the animation
  */
 (function init() {
 
-  iterations = 0;
+  settings.animationOn = true;
+  settings.rotationOn = true;
 
+  iterations = 0;
+  aliveCells = 0;
   isStalled = false;
-  animationOn = true;
+
+  //resetStats();
 
 	cells = [];
   aliveCells = 0;
   totalCells = Math.pow(settings.worldSize, 3);
+
+  world = new THREE.Object3D();
 
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
@@ -104,24 +114,41 @@ let controls;
 	renderer.setClearColor(new THREE.Color(0, 0.12, 0.2));
 	container.appendChild(renderer.domElement);
 
-	controls = new THREE.OrbitControls( camera, renderer.domElement );
-
 	window.addEventListener('resize', () => {
+
 		camera.aspect = container.clientWidth / container.clientHeight;
 		camera.updateProjectionMatrix();
 
 		renderer.setSize(container.clientWidth, container.clientHeight);
+
 	});
 
-  setUpControls();
-	drawScene();
+	const {worldSize, cellSize, cellPadding} = settings;
+	const midpoint = (worldSize * (cellSize + cellPadding) - cellPadding) / 2;
+	const midpointVector = new THREE.Vector3(midpoint, midpoint, midpoint);
+	const cameraPosition = new THREE.Vector3(midpoint, midpoint * 3, midpoint * 6);
+
+  camera.reset = () => {
+
+    camera.position.copy(cameraPosition);
+    camera.lookAt(midpointVector);
+
+  }
+
+  camera.reset();
+
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.copy(midpointVector);
+
+  setUpGUIControls();
+	createWorld();
 	animate();
 
 })();
 
-function setUpControls() {
+function setUpGUIControls() {
 
-  const percentageTextField = document.getElementById('randomnessTextField');
+  const percentageTextField = document.getElementById('startPercentageTextField');
   percentageTextField.innerHTML = settings.startPercentage + '%';
 
   const overcrowdingTextField = document.getElementById('overcrowdingTextField');
@@ -136,31 +163,11 @@ function setUpControls() {
   const birthMaxTextField = document.getElementById('birthMaxTextField');
   birthMaxTextField.innerHTML = settings.rules.birthMax;
 
-  const orientCamera = (position, lookAt) => {
-
-  	return (() => {
-  		console.log('reset called');
-  		camera.position.copy(position);
-  		camera.lookAt(lookAt);
-  	});
-
-  }
-
-	const {worldSize, cellSize, cellPadding} = settings;
-	const midpoint = (worldSize * (cellSize + cellPadding) - cellPadding) / 2;
-	const midpointVector = new THREE.Vector3(midpoint, midpoint, midpoint);
-	const cameraPosition = new THREE.Vector3(midpoint, midpoint * 2, midpoint * 6);
-
-  const resetCameraPosition = orientCamera(cameraPosition, midpointVector);
-  resetCameraPosition();
-
-  controls.target.copy(midpointVector);
-
   const toggleAnimation = () => {
 
-    animationOn = !animationOn;
+    settings.animationOn = !settings.animationOn;
     const textField = document.getElementById('animationStatus');
-    textField.innerHTML = animationOn ? 'ON' : 'OFF';
+    textField.innerHTML = settings.animationOn ? 'ON' : 'OFF';
 
   };
 
@@ -172,76 +179,78 @@ function setUpControls() {
 
   }
 
-  const updateStartPercentage = diff => {
+  // bounder returns a function which accepts a single value and returns:
+  // value if min < value < max; max if value < max; min if value < min
+  const bounder = (min, max) => {
 
-    settings.startPercentage += diff;
-    settings.startPercentage = Math.min(settings.startPercentage, 90);
-    settings.startPercentage = Math.max(settings.startPercentage, 10);
-
-    const textField = document.getElementById('randomnessTextField');
-    textField.innerHTML = settings.startPercentage + '%';
-
-  };
-
-  const updateRule = (rule, diff) => {
-
-    settings.rules[rule] += diff;
-    settings.rules[rule] = Math.min(settings.rules[rule], 27);
-    settings.rules[rule] = Math.max(settings.rules[rule], 0);
-
-    const textField = document.getElementById(rule + 'TextField');
-    textField.innerHTML = settings.rules[rule];
+    return value => Math.max(min, Math.min(value, max));
 
   }
 
-  const increaseStartPercentage = () => { updateStartPercentage(10); }
-  const decreaseStartPercentage = () => { updateStartPercentage(-10); }
+  // updater returns a function which only needs the name of a variable,
+  // and the amount to change it by. With currying, the parent of the variable,
+  // the acceptable range for the value, and the suffix to add to the text
+  // field is adjustable.
+  const updater = (parent, lowerBound, upperBound, suffix) => {
 
-  const increaseOvercrowding = () => { updateRule('overcrowding', 1); }
-  const decreaseOvercrowding = () => { updateRule('overcrowding', -1); }
-  const increaseStarvation = () => { updateRule('starvation', 1); }
-  const decreaseStarvation = () => { updateRule('starvation', -1); }
-  const increaseBirthMin = () => { updateRule('birthMin', 1); }
-  const decreaseBirthMin = () => { updateRule('birthMin', -1); }
-  const increaseBirthMax = () => { updateRule('birthMax', 1); }
-  const decreaseBirthMax = () => { updateRule('birthMax', -1); }
+    return (setting, diff) => {
 
-	 // This function makes it easy to add event listeners to elements
-	const eventAdder = (elementId, event, func) => {
+      console.log('here!');
+
+      parent[setting] = bounder(lowerBound, upperBound)(parent[setting] + diff);
+
+      const textField = document.getElementById(setting + 'TextField');
+      textField.innerHTML = parent[setting] + '' + suffix;
+
+    };
+
+  };
+
+  const settingUpdater = updater(settings, 0, 100, '%');
+  const increaseSetting = setting => settingUpdater(setting, 10);
+  const decreaseSetting = setting => settingUpdater(setting, -10);
+
+  const ruleUpdater = updater(settings.rules, 0, 27, '');
+  const increaseRule = rule => ruleUpdater(rule, 1);
+  const decreaseRule = rule => ruleUpdater(rule, -1);
+
+
+	// This function makes it easy to add event
+  // listeners (in this case, click events) to elements
+	const addOnClick = (elementId, func) => {
 
 	  const element = document.getElementById(elementId);
 
-	  if (element != null) {
+	  if (element !== null) {
 
-	  	element.addEventListener(event, func);
+	  	element.addEventListener('click', func);
 
 	  }
 
 	}
 
-  eventAdder('animationButton', 'click', toggleAnimation);
-  eventAdder('wrapAroundButton', 'click', toggleWrapAround);
+  addOnClick('animationButton', toggleAnimation);
+  addOnClick('wrapAroundButton', toggleWrapAround);
+  addOnClick('randomizeButton', randomizeStates);
+  addOnClick('resetCameraButton', camera.reset);
 
-  eventAdder('randomizeButton', 'click', randomizeStates);
-  eventAdder('resetCameraButton', 'click', resetCameraPosition);
-
-  eventAdder('increaseRandomness', 'click', increaseStartPercentage);
-  eventAdder('decreaseRandomness', 'click', decreaseStartPercentage);
-  eventAdder('increaseOvercrowding', 'click', increaseOvercrowding);
-  eventAdder('decreaseOvercrowding', 'click', decreaseOvercrowding);
-  eventAdder('increaseStarvation', 'click', increaseStarvation);
-  eventAdder('decreaseStarvation', 'click', decreaseStarvation);
-  eventAdder('increaseBirthMin', 'click', increaseBirthMin);
-  eventAdder('decreaseBirthMin', 'click', decreaseBirthMin);
-  eventAdder('increaseBirthMax', 'click', increaseBirthMax);
-  eventAdder('decreaseBirthMax', 'click', decreaseBirthMax);
+  addOnClick('increaseStartPercentage', () => increaseSetting('startPercentage'));
+  addOnClick('decreaseStartPercentage', () => decreaseSetting('startPercentage'));
+  addOnClick('increaseOvercrowding', () => increaseRule('overcrowding'));
+  addOnClick('decreaseOvercrowding', () => decreaseRule('overcrowding'));
+  addOnClick('increaseStarvation', () => increaseRule('starvation'));
+  addOnClick('decreaseStarvation', () => decreaseRule('starvation'));
+  addOnClick('increaseBirthMin', () => increaseRule('birthMin'));
+  addOnClick('decreaseBirthMin', () => decreaseRule('birthMin'));
+  addOnClick('increaseBirthMax', () => increaseRule('birthMax'));
+  addOnClick('decreaseBirthMax', () => decreaseRule('birthMax'));
 
 }
 
 function updateStatus() {
 
   const animationTextField = document.getElementById('animationStatus');
-  animationTextField.innerHTML = animationOn ? 'ON' : 'OFF';
+  animationTextField.innerHTML = settings.animationOn ? 'ON' : 'OFF';
 
   const iterationsTextField = document.getElementById('iterationsStatus');
   iterationsTextField.innerHTML = iterations;
@@ -261,8 +270,6 @@ function resetStats() {
 }
 
 function randomizeStates() {
-
-	resetStats();
 
   cells.forEach(column => {
 
@@ -297,7 +304,7 @@ function randomizeStates() {
 /*
  * TODO: Implement different geometries
  */
-function drawScene() {
+function createWorld() {
 
 	// Grab the cellSize and cellPadding from settings, and store them shorthand
 	const {cellSize: size, cellPadding: padding} = settings;
@@ -515,18 +522,12 @@ function animate() {
 
 	requestAnimationFrame(animate);
 
-  if (animationOn) {
+  if (settings.animationOn) {
 
     iterations++;
 
     determineNextState();
     goToNextState();
-
-    if (isStalled) {
-
-    	animationOn = false;
-
-    }
 
   }
 
