@@ -6,7 +6,6 @@
  * TODO:
  * - Different materials
  * - Auto-rotate
- * - Add speed
  * - Triple equals
  * - show cam position in status
  * - GitHub readme with gif and wiki quotes
@@ -30,7 +29,7 @@ const settings = {
 
 	// True if the cells on one side of the world should count
 	// the cells on the opposite side as neighbors
-  wrapAround: true,
+  wrapAroundOn: true,
 
   // True if world is iterating through cycles
   animationOn: true,
@@ -114,6 +113,7 @@ let controls;
 
 	scene = new THREE.Scene();
 	scene.add(camera);
+	scene.add(world);
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setSize(width, height);
@@ -146,6 +146,8 @@ let controls;
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.copy(midpointVector);
 
+  world.position.copy(new THREE.Vector3(39.5, 0, 39.5));
+
   setUpGUIControls();
 	createWorld();
 	animate();
@@ -164,39 +166,23 @@ function resetStats() {
 
 function setUpGUIControls() {
 
-  const percentageTextField = document.getElementById('startPercentageTextField');
-  percentageTextField.innerHTML = settings.startPercentage + '%';
+  const writeTextField = (textFieldId, value) => {
 
-  const speedTextField = document.getElementById('speedTextField');
-  speedTextField.innerHTML = settings.speed + '%';
+    const textField = document.getElementById(textFieldId + 'TextField');
 
-  const overcrowdingTextField = document.getElementById('overcrowdingTextField');
-  overcrowdingTextField.innerHTML = settings.rules.overcrowding;
+    if (textField !== null) {
 
-  const starvationTextField = document.getElementById('starvationTextField');
-  starvationTextField.innerHTML = settings.rules.starvation;
+      textField.innerHTML = value;
 
-  const birthMinTextField = document.getElementById('birthMinTextField');
-  birthMinTextField.innerHTML = settings.rules.birthMin;
-
-  const birthMaxTextField = document.getElementById('birthMaxTextField');
-  birthMaxTextField.innerHTML = settings.rules.birthMax;
-
-  const toggleAnimation = () => {
-
-    settings.animationOn = !settings.animationOn;
-    const textField = document.getElementById('animationStatus');
-    textField.innerHTML = settings.animationOn ? 'ON' : 'OFF';
-
-  };
-
-  const toggleWrapAround = () => {
-
-    settings.wrapAround = !settings.wrapAround;
-    const textField = document.getElementById('wrapAroundStatus');
-    textField.innerHTML = settings.wrapAround ? 'ON' : 'OFF';
+    }
 
   }
+
+  writeTextField('startPercentage', settings.startPercentage + '%');
+  writeTextField('speed', settings.speed + '%');
+  writeTextField('overcrowding', settings.rules.overcrowding);
+  writeTextField('starvation', settings.rules.starvation);
+  writeTextField('birthMin', settings.rules.birthMin);
 
   // bounder returns a function which accepts a single value and returns:
   // value if min < value < max; max if value < max; min if value < min
@@ -236,6 +222,19 @@ function setUpGUIControls() {
   const increaseRule = rule => ruleUpdater(rule, 1);
   const decreaseRule = rule => ruleUpdater(rule, -1);
 
+  const toggleSetting = (setting) => {
+
+    settings[setting] = !settings[setting];
+
+    const textField = document.getElementById(setting + 'Status');
+
+    if (textField !== null) {
+
+      textField.innerHTML = settings[setting] ? 'ON' : 'OFF';
+
+    }
+
+  }
 
 	// This function makes it easy to add event
   // listeners (in this case, click events) to elements
@@ -251,11 +250,14 @@ function setUpGUIControls() {
 
 	}
 
-  addOnClick('animationButton', toggleAnimation);
-  addOnClick('wrapAroundButton', toggleWrapAround);
   addOnClick('randomizeButton', randomizeStates);
   addOnClick('resetCameraButton', camera.reset);
+  addOnClick('animationOnButton', () => toggleSetting('animationOn'));
+  addOnClick('wrapAroundOnButton', () => toggleSetting('wrapAroundOn'));
+  addOnClick('rotationOnButton', () => toggleSetting('rotationOn'));
 
+  addOnClick('increaseSpeed', () => increaseSetting('speed'));
+  addOnClick('decreaseSpeed', () => decreaseSetting('speed'));
   addOnClick('increaseStartPercentage', () => increaseSetting('startPercentage'));
   addOnClick('decreaseStartPercentage', () => decreaseSetting('startPercentage'));
   addOnClick('increaseOvercrowding', () => increaseRule('overcrowding'));
@@ -275,10 +277,7 @@ function setUpGUIControls() {
  * If the values haven't changed, then it shouldn't go to the DOM
  * each frame.
  */
-function updateStatus() {
-
-  const animationTextField = document.getElementById('animationStatus');
-  animationTextField.innerHTML = settings.animationOn ? 'ON' : 'OFF';
+function updateStatusMenu() {
 
   const iterationsTextField = document.getElementById('iterationsStatus');
   iterationsTextField.innerHTML = stats.iterations;
@@ -353,7 +352,8 @@ function createWorld() {
 				cell.position.set(getOffset(xIndex), getOffset(yIndex), getOffset(zIndex));
 
 				cells[xIndex][yIndex].push(cell);
-				scene.add(cell)
+				scene.add(cell);
+        world.add(cell);
 
 				randomizeStates();
 
@@ -499,7 +499,7 @@ function countAliveNeighbors(column, row, layer) {
         let nRow = row + dirs[y];
         let nLayer = layer + dirs[z];
 
-        if (settings.wrapAround) {
+        if (settings.wrapAroundOn) {
 
           if (nColumn < 0) { nColumn = cells.length - 1; }
           if (nColumn >= cells.length) { nColumn = 0; }
@@ -541,15 +541,11 @@ function animate() {
 
 	requestAnimationFrame(animate);
 
-  if (settings.rotationOn) {
-
-    //world.rotate();
-
-  }
-
   if (settings.animationOn) {
 
-    const framesToSkip = 10 - (settings.speed / 10);
+    // 10 frames skipped at speed=0, added 1 to prevent div by 0,
+    // added 3 to create a more reasonable speed.
+    const framesToSkip = 14 - (settings.speed / 10);
     const readyForIteration = stats.frames % framesToSkip == 0;
 
     if (readyForIteration) {
@@ -561,10 +557,16 @@ function animate() {
 
     }
 
+    if (settings.rotationOn) {
+
+      world.rotation.y += 0.1;
+
+    }
+
   }
 
   controls.update();
-  updateStatus();
+  updateStatusMenu();
 
   stats.frames++;
 
