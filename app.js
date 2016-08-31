@@ -5,9 +5,7 @@
  *
  * TODO:
  * - Different materials
- * - Auto-rotate
  * - Triple equals
- * - show cam position in status
  * - GitHub readme with gif and wiki quotes
  */
 const settings = {
@@ -40,24 +38,20 @@ const settings = {
   // Controls the speed of rotation.
   rotationSpeed: 0.01,
 
-  /* Controls how many frames are skipped before next iteration is shown.
-   * 0 - 10 frames are skipped. Speed is a 0 - 100 % value.
-   * When speed is 100, 0 frames are skipped,
-   * When speed is 50, 5 frames are skipped,
-   * When speed is 0, 10 frames are skipped
-   */
+  // Controls how many milliseconds are between each cycle.
+  // Speed is a percentage value with range of 200ms( 0% ) to 1000ms( 100% ).
   speed: 30,
 
   // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
-	  // Alive cells 'die' with too many neighbors
+	  // Alive cells 'die' with too many neighbors.
 	  overcrowding: 12,
 
-	  // Alive cells 'die' with too few neighbors
+	  // Alive cells 'die' with too few neighbors.
 	  starvation: 6,
 
-	  // Dead cells come alive with the right number of neighbors
+	  // Dead cells come alive with the right number of neighbors.
 	  birthMin: 6,
 	  birthMax: 12,
   },
@@ -69,10 +63,10 @@ const stats = {
   aliveCells: 0,
   totalCells: 0,
 
-  // Frames refers to the number of frames rendered by Three.js
-  frames: 0,
+  // Holds the time when the world last updated to a new cycle.
+  lastCycleTime: 0,
 
-  // Iterations refers to the number of cycles since the game began
+  // Iterations refers to the number of cycles since the game began.
   iterations: 0,
 
   // isStalled is set to true if the game reaches a state it can not leave;
@@ -168,11 +162,6 @@ function resetStats() {
 
 function writeTextField(textFieldId, value) {
 
-	 camera.reset = () => {
-  	camera.position.copy(camera.startingPosition);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-  }
-
   const textField = document.getElementById(textFieldId);
 
   if (textField !== null) {
@@ -192,9 +181,14 @@ function setUpGUIControls() {
   writeTextField('birthMinTextField', settings.rules.birthMin);
   writeTextField('birthMaxTextField', settings.rules.birthMax);
 
+	camera.reset = () => {
+  	camera.position.copy(camera.startingPosition);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+
   // bounder returns a function which accepts a single value and returns:
-  // value if min < value < max; max if value < max; min if value < min
-  const bounder = (min, max) => {
+  // value if min < value < max; max if value > max; min if value < min
+  const clamper = (min, max) => {
 
     return value => Math.max(min, Math.min(value, max));
 
@@ -208,7 +202,7 @@ function setUpGUIControls() {
 
     return (setting, diff) => {
 
-      parent[setting] = bounder(lowerBound, upperBound)(parent[setting] + diff);
+      parent[setting] = clamper(lowerBound, upperBound)(parent[setting] + diff);
       writeTextField(setting + 'TextField', parent[setting] + '' + suffix);
 
     };
@@ -231,8 +225,7 @@ function setUpGUIControls() {
 
   }
 
-	// This function makes it easy to add event
-  // listeners (in this case, click events) to elements
+	// This function makes it easy to add 'onClick' events
 	const addOnClick = (elementId, func) => {
 
 	  const element = document.getElementById(elementId);
@@ -278,7 +271,7 @@ function updateStatusMenu() {
 
 	writeTextField('iterationsStatus', stats.iterations);
 	writeTextField('cellsStatus', cellsText);
-	writeTextField('stalledStatus', stats.isStalled);
+	writeTextField('stalledStatus', stats.isStalled ? 'Yes' : 'Nope');
 
 }
 
@@ -395,7 +388,7 @@ function determineNextState() {
          * between settings.rules.starvation and settings.rules.overcrowding
          * neighbors, otherwise it dies.
          */
-        if (cell.currentState == states.dead) {
+        if (cell.currentState === states.dead) {
 
           const aboveMin = aliveNeighbors > settings.rules.birthMin;
           const belowMax = aliveNeighbors < settings.rules.birthMax;
@@ -427,7 +420,7 @@ function determineNextState() {
 
         }
 
-        if (!stateChanged && cell.nextState != cell.currentState) {
+        if (!stateChanged && cell.nextState !== cell.currentState) {
 
           stateChanged = true;
 
@@ -456,7 +449,7 @@ function goToNextState() {
         cell.currentState = cell.nextState;
         cell.nextState = null;
 
-        if (cell.currentState == states.alive) {
+        if (cell.currentState === states.alive) {
 
           cell.visible = true;
           stats.aliveCells++;
@@ -485,6 +478,34 @@ function countAliveNeighbors(column, row, layer) {
 	const dirs = [0, 1, -1];
 	let count = 0;
 
+  const clamper = (min, minReplacement, max, maxReplacement) => {
+
+		return value => {
+
+			if (value < min) {
+
+				return minReplacement;
+
+			} else if (value > max) {
+
+				return maxReplacement;
+
+			} else {
+
+				return value;
+
+			}
+
+		};
+
+	}
+
+	// If settings.wrapAround, use this to count neighbors on opposite sides.
+	const wrapClamper = clamper(0, settings.worldSize - 1, settings.worldSize - 1, 0);
+
+	// If !settings.wrapAround, use this to test if value is within cellArray bounds.
+	const inBounds = value => value === wrapClamper(value);
+
 	for (let x = 0; x < dirs.length; x++) {
 
     for (let y = 0; y < dirs.length; y++) {
@@ -492,7 +513,11 @@ function countAliveNeighbors(column, row, layer) {
       for (let z = 0; z < dirs.length; z++) {
 
         // Don't count the cell itself
-        if (x == 0 && y == 0 && z == 0) { continue; }
+        if (x === 0 && y === 0 && z === 0) {
+
+        	continue;
+
+        }
 
         // Current neighbor coordinates
         let nColumn = column + dirs[x];
@@ -501,31 +526,28 @@ function countAliveNeighbors(column, row, layer) {
 
         if (settings.wrapAroundOn) {
 
-          if (nColumn < 0) { nColumn = cellArray.length - 1; }
-          if (nColumn >= cellArray.length) { nColumn = 0; }
-
-          if (nRow < 0) { nRow = cellArray[nColumn].length - 1; }
-          if (nRow >= cellArray[nColumn].length) { nRow = 0; }
-
-          if (nLayer < 0) { nLayer = cellArray[nColumn][nRow].length - 1; }
-          if (nLayer >= cellArray[nColumn][nRow].length) { nLayer = 0; }
+          nColumn = wrapClamper(nColumn);
+          nRow = wrapClamper(nRow);
+          nLayer = wrapClamper(nLayer);
 
         } else {
 
-          // Make sure index is within array bounds.
-          if (nColumn < 0 || nColumn >= cellArray.length ||
-              nRow < 0 || nRow >= cellArray[nColumn].length ||
-              nLayer < 0 || nLayer >= cellArray[nColumn][nRow].length) {
+        	// Skip neighbor if isn't next to cell i.e. if wrapping is needed
+        	if ( !(inBounds(nColumn) && inBounds(nRow) && inBounds(nLayer)) ) {
 
-            continue;
+        		continue;
 
-          }
+        	}
 
         }
 
-        const neighbor = cellArray[nColumn][nRow][nLayer];
+        const currentNeighborCell = cellArray[nColumn][nRow][nLayer];
 
-        if (neighbor.currentState == states.alive) { count++; }
+        if (currentNeighborCell.currentState === states.alive) {
+
+        	count++;
+
+        }
 
 			}
 
@@ -543,13 +565,12 @@ function animate() {
 
   if (settings.animationOn) {
 
-    // 10 frames skipped at speed=0, added 1 to prevent div by 0,
-    // added 3 to create a more reasonable speed.
-    const framesToSkip = 14 - (settings.speed / 10);
-    const readyForIteration = stats.frames % framesToSkip == 0;
+  	// Speed is a 0-100 % value resulting in 200-1000ms
+  	const timeBetweenCycles = 800 - settings.speed * 8 + 200
 
-    if (readyForIteration) {
+    if (performance.now() - stats.lastCycleTime >= timeBetweenCycles) {
 
+      stats.lastCycleTime = performance.now();
       stats.iterations++;
 
       determineNextState();
@@ -567,9 +588,6 @@ function animate() {
 
   controls.update();
   updateStatusMenu();
-
-  stats.frames++;
-
 	renderer.render(scene, camera);
 
 }
