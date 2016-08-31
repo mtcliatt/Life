@@ -156,7 +156,6 @@ function resetStats() {
   stats.iterations = 0;
   stats.frames = 0;
   stats.aliveCells = 0;
-  stats.totalCells = 0;
   stats.isStalled = false;
 
 }
@@ -448,8 +447,6 @@ function goToNextState() {
 
         }
 
-        //cell.rotateOnAxis(new THREE.Vector3(0.57735, 0.57735, 0.57735), 0.1);
-
       });
 
     });
@@ -523,6 +520,12 @@ function countAliveNeighbors(column, row, layer) {
 function animate() {
 
 	requestAnimationFrame(animate);
+
+	if (stats.frames % 100 === 0) {
+
+		console.log(stats.aliveCells);
+
+	}
 
   if (settings.animationOn) {
 
