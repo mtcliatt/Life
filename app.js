@@ -37,9 +37,12 @@ const settings = {
   // True if the collection of cells should rotate around their midpoint
   rotationOn: true,
 
-  // Controls how many frames are skipped before next iteration is shown.
-  // When speed is 100, no frames are skipped, 50 - 5 frames are skipped,
-  // 0 - 10 frames are skipped. Speed is a 0 - 100 % value.
+  /* Controls how many frames are skipped before next iteration is shown.
+   * 0 - 10 frames are skipped. Speed is a 0 - 100 % value.
+   * When speed is 100, 0 frames are skipped,
+   * When speed is 50, 5 frames are skipped,
+   * When speed is 0, 10 frames are skipped
+   */
   speed: 30,
 
   // Rules for 'The Game of Life', modified for 3D.
@@ -100,14 +103,16 @@ let cellParent;
  */
 (function init() {
 
-	cellArray = [];
-  stats.totalCells = Math.pow(settings.worldSize, 3);
-
 	const container = document.getElementById('drawingCanvas');
 	const width = container.clientWidth;
 	const height = container.clientHeight;
 
-	camera = new THREE.PerspectiveCamera(45, width / height, 1, 100000);
+	camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+
+	// Sets the camera up and away from the cells to get a better view.
+	camera.startingPosition = getWorldMidpoint().multiply(new THREE.Vector3(0, 3, 6));
+	camera.position.copy(camera.startingPosition);
+	camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 	scene = new THREE.Scene();
 	scene.add(camera);
@@ -116,6 +121,8 @@ let cellParent;
 	renderer.setSize(width, height);
 	renderer.setClearColor(new THREE.Color(0, 0.12, 0.2));
 	container.appendChild(renderer.domElement);
+
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 	window.addEventListener('resize', () => {
 
@@ -126,24 +133,6 @@ let cellParent;
 
 	});
 
-	const {worldSize, cellSize, cellPadding} = settings;
-	const midpoint = (worldSize * (cellSize + cellPadding) - cellPadding) / 2;
-	const midpointVector = new THREE.Vector3(midpoint, midpoint, midpoint);
-	const cameraPosition = new THREE.Vector3(midpoint, midpoint * 3, midpoint * 6);
-
-  camera.reset = () => {
-
-    camera.position.copy(cameraPosition);
-    camera.lookAt(midpointVector);
-
-  }
-
-  camera.reset();
-
-	controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.copy(midpointVector);
-
-  camera.reset();
   resetStats();
   setUpGUIControls();
 	createWorld();
@@ -151,16 +140,35 @@ let cellParent;
 
 })();
 
+function getWorldMidpoint() {
+
+	const {worldSize, cellSize, cellPadding} = settings;
+	const sizePerCell = cellSize + cellPadding;
+	const excessSpace = cellPadding;
+
+	const endpoint = (worldSize * sizePerCell - excessSpace);
+
+	return new THREE.Vector3(endpoint / 2, endpoint / 2, endpoint / 2);
+
+}
+
+// Reset all of the stats to their starting/default values.
 function resetStats() {
 
+  stats.isStalled = false;
   stats.iterations = 0;
   stats.frames = 0;
   stats.aliveCells = 0;
-  stats.isStalled = false;
+  stats.totalCells = Math.pow(settings.worldSize, 3);
 
 }
 
 function writeTextField(textFieldId, value) {
+
+	 camera.reset = () => {
+  	camera.position.copy(camera.startingPosition);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+  }
 
   const textField = document.getElementById(textFieldId);
 
@@ -305,6 +313,11 @@ function randomizeStates() {
 
 function createWorld() {
 
+	cellArray = [];
+	cellParent = new THREE.Object3D();
+
+	scene.add(cellParent);
+
 	// Grab the cellSize and cellPadding from settings, and store them shorthand
 	const {cellSize: size, cellPadding: padding} = settings;
 
@@ -317,7 +330,7 @@ function createWorld() {
 
 	}
 
-	const getOffset = (index) => index * (size + padding);
+	const getOffset = index => index * (size + padding);
 
 	for (let xIndex = 0; xIndex < settings.worldSize; xIndex++) {
 
@@ -329,21 +342,25 @@ function createWorld() {
 
 			for (let zIndex = 0; zIndex < settings.worldSize; zIndex++) {
 
-				const cell = createCell();
-				cell.position.set(getOffset(xIndex), getOffset(yIndex), getOffset(zIndex));
+				// The position of the cell, moved to it's location, then
+				// moved back some so that the group's center is at 0, 0, 0.
+				const adjustedPosition = new THREE.Vector3(
+						getOffset(xIndex), getOffset(yIndex), getOffset(zIndex)
+				).sub(getWorldMidpoint());
 
-				cell.geometry.center();
+				const cell = createCell();
+				cell.position.copy(adjustedPosition);
 
 				cellArray[xIndex][yIndex].push(cell);
-				scene.add(cell);
-
-				randomizeStates();
+				cellParent.add(cell);
 
 			}
 
 		}
 
 	}
+
+	randomizeStates();
 
 }
 
@@ -521,12 +538,6 @@ function animate() {
 
 	requestAnimationFrame(animate);
 
-	if (stats.frames % 100 === 0) {
-
-		console.log(stats.aliveCells);
-
-	}
-
   if (settings.animationOn) {
 
     // 10 frames skipped at speed=0, added 1 to prevent div by 0,
@@ -544,6 +555,8 @@ function animate() {
     }
 
     if (settings.rotationOn) {
+
+    	cellParent.rotation.y += 0.1;
 
     }
 
