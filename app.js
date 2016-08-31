@@ -139,18 +139,6 @@ let cellParent;
 
 })();
 
-function getWorldMidpoint() {
-
-	const {worldSize, cellSize, cellPadding} = settings;
-	const sizePerCell = cellSize + cellPadding;
-	const excessSpace = cellPadding;
-
-	const endpoint = (worldSize * sizePerCell - excessSpace);
-
-	return new THREE.Vector3(endpoint / 2, endpoint / 2, endpoint / 2);
-
-}
-
 // Reset all of the stats to their starting/default values.
 function resetStats() {
 
@@ -188,7 +176,7 @@ function setUpGUIControls() {
     camera.lookAt(new THREE.Vector3(0, 0, 0));
   }
 
-  // bounder returns a function which accepts a single value and returns:
+  // clamper returns a function which accepts a single value and returns:
   // value if min < value < max; max if value > max; min if value < min
   const clamper = (min, max) => {
 
@@ -313,11 +301,16 @@ function createWorld() {
 
 	cellArray = [];
 	cellParent = new THREE.Object3D();
-
 	scene.add(cellParent);
 
-	// Grab the cellSize and cellPadding from settings, and store them shorthand
 	const {cellSize: size, cellPadding: padding} = settings;
+
+	// Used to find the length of the world's rows, columns, and layers.
+	const sizePerCell = size + padding;
+	const excessEndSpace = padding;
+
+	// Length of each row, column, and layer, including cells & spacing.
+	const totalWorldSize = settings.worldSize * sizePerCell - excessEndSpace;
 
 	const createCell = () => {
 
@@ -344,7 +337,7 @@ function createWorld() {
 				// moved back some so that the group's center is at 0, 0, 0.
 				const adjustedPosition = new THREE.Vector3(
 						getOffset(xIndex), getOffset(yIndex), getOffset(zIndex)
-				).sub(getWorldMidpoint());
+				).addScalar( -totalWorldSize / 2 );
 
 				const cell = createCell();
 				cell.position.copy(adjustedPosition);
