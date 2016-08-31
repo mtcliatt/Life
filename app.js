@@ -1,82 +1,78 @@
 'use strict';
 
-/*
+/**
  * @author Matthew Cliatt
  *
- * TODO:
- * - Different materials
- * - Triple equals
- * - GitHub readme with gif and wiki quotes
+ */
+
+/**
+ * Settings - Safe-to-customize config variables.
+ *
+ * cellSize - Size of each individual cell.
+ * cellPadding - Space between cells.
+ * worldSize - Number of cells per row, column, and layer.
+ * startPercentage - Percentage of cells which will be initialized alive.
+ *
+ * wrapAroundOn - True if world "wraps" around itself, Pac-Man style.
+ * animationOn - True if world should be animated (cycles, rotation, etc).
+ * rotationOn - True if world should automatically rotate.
+ *
+ * rotationSpeed - Controls amount of rotation per frame.
+ * cycleSpeed - 0-100% = 200ms-1000ms delay in cycles, controllable by user.
+ *
+ * rules - Rules governing 'The Game of Life', controllable by user.
+ * 				 Alive cells die with < 'starvation' or > 'overcrowding' alive neighbors,
+ * 				 Dead cells come to life with > 'birthMin' AND < 'birthMax' neighbors.
+ *   overcrowding, starvation, birthMin, birthMax
+ *
  */
 const settings = {
 
-	// Size of each individual cell
 	cellSize: 2,
-
-	// Amount of space between each cell
 	cellPadding: 1,
-
-	// Number of cells along each row/column/layer
 	worldSize: 20,
-
-	// Percentage of cells alive when the world is created/reset
   startPercentage: 30,
 
-  // Look of the individual cells
-	cellMaterial: THREE.MeshNormalMaterial,
-
-	// True if the cells on one side of the world should count
-	// the cells on the opposite side as neighbors
   wrapAroundOn: true,
-
-  // True if world is iterating through cycles
   animationOn: true,
-
-  // True if the collection of cells should rotate around their midpoint
   rotationOn: true,
 
-  // Controls the speed of rotation.
   rotationSpeed: 0.01,
+  cycleSpeed: 30,
 
-  // Controls how many milliseconds are between each cycle.
-  // Speed is a percentage value with range of 200ms( 0% ) to 1000ms( 100% ).
-  speed: 30,
-
-  // Rules for 'The Game of Life', modified for 3D.
   rules: {
 
-	  // Alive cells 'die' with too many neighbors.
 	  overcrowding: 12,
-
-	  // Alive cells 'die' with too few neighbors.
 	  starvation: 6,
-
-	  // Dead cells come alive with the right number of neighbors.
 	  birthMin: 6,
 	  birthMax: 12,
+
   },
 
 };
 
+/**
+ * stats - Tracking variables updated by the program itself.
+ *
+ * aliveCells - Number of cells alive this cycle.
+ * totalCells - Gets set to Math.pow(aliveCells, 3).
+ * lastCycleTime - Holds the time when the world last updated to a new cycle.
+ * iterations - Refers to the number of cycles since the current game began.
+ * isStalled - Gets set to true if the game reaches a state that produces itself.
+ */
 const stats = {
 
-  aliveCells: 0,
-  totalCells: 0,
-
-  // Holds the time when the world last updated to a new cycle.
+  aliveCells:
   lastCycleTime: 0,
-
-  // Iterations refers to the number of cycles since the game began.
   iterations: 0,
-
-  // isStalled is set to true if the game reaches a state it can not leave;
-  // i.e. a state that produces itself.
   isStalled: false,
 
 };
 
-// Possible cell states; provides readability over just 0 or 1
-const states = {
+/**
+ * cellStates - Contains the possible cell states to maintain readability.
+ */
+const cellStates = {
 
 	alive: 0,
 	dead: 1,
@@ -93,10 +89,15 @@ let controls;
 let cellArray;
 let cellParent;
 
-/*
- * Set up the scene,
- * draw the cells,
- * start the animation
+/**
+ * init() - Starts the show!
+ *
+ * 1) Sets up the THREE.js components needed to draw graphics.
+ * 2) resetStats() - Sets the tracking variables to their correct starting values.
+ * 3) setUpGUIControls() - Sets up the user interface.
+ * 4) createWorld() - Creates the cells and adds them to the scene.
+ * 5) animate() - Starts rendering the scene and updating the world.
+ *
  */
 (function init() {
 
@@ -175,7 +176,7 @@ function writeTextField(textFieldId, value) {
 function setUpGUIControls() {
 
   writeTextField('startPercentageTextField', settings.startPercentage + '%');
-  writeTextField('speedTextField', settings.speed + '%');
+  writeTextField('speedTextField', settings.cycleSpeed + '%');
   writeTextField('overcrowdingTextField', settings.rules.overcrowding);
   writeTextField('starvationTextField', settings.rules.starvation);
   writeTextField('birthMinTextField', settings.rules.birthMin);
@@ -244,8 +245,8 @@ function setUpGUIControls() {
   addOnClick('wrapAroundOnButton', () => toggleSetting('wrapAroundOn'));
   addOnClick('rotationOnButton', () => toggleSetting('rotationOn'));
 
-  addOnClick('increaseSpeed', () => increaseSetting('speed'));
-  addOnClick('decreaseSpeed', () => decreaseSetting('speed'));
+  addOnClick('increaseSpeed', () => increaseSetting('cycleSpeed'));
+  addOnClick('decreaseSpeed', () => decreaseSetting('cycleSpeed'));
   addOnClick('increaseStartPercentage', () => increaseSetting('startPercentage'));
   addOnClick('decreaseStartPercentage', () => decreaseSetting('startPercentage'));
   addOnClick('increaseOvercrowding', () => increaseRule('overcrowding'));
@@ -285,12 +286,12 @@ function randomizeStates() {
 
         if (Math.random() < (settings.startPercentage / 100)) {
 
-          cell.currentState = states.alive;
+          cell.currentState = cellStates.alive;
           cell.visible = true;
 
         } else {
 
-          cell.currentState = states.dead;
+          cell.currentState = cellStates.dead;
           cell.visible = false;
 
         }
@@ -320,7 +321,7 @@ function createWorld() {
 	const createCell = () => {
 
 		const geometry = new THREE.BoxGeometry(size, size, size);
-		const material = new settings.cellMaterial();
+		const material = new THREE.MeshNormalMaterial();
 
 		return new THREE.Mesh(geometry, material);
 
@@ -360,10 +361,7 @@ function createWorld() {
 
 }
 
-/*
- * Determine and set the nextState for each cell.
- * Does NOT change the cell's currentState.
- */
+// Determines and sets the nextState for each cell.
 function determineNextState() {
 
   let stateChanged = false;
@@ -379,15 +377,7 @@ function determineNextState() {
 				let nextState = null;
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
 
-        /*
-         * If a cell is dead, it becomes alive if it has
-         * between settings.rules.birthMin and settings.rules.birthMax
-         * neighbors, otherwise it stays dead.
-         *
-         * If a cell is alive, it stays alive if it has
-         * between settings.rules.starvation and settings.rules.overcrowding
-         * neighbors, otherwise it dies.
-         */
+				// This logic is detailed in the comments on settings.rules
         if (cell.currentState === states.dead) {
 
           const aboveMin = aliveNeighbors > settings.rules.birthMin;
@@ -436,6 +426,7 @@ function determineNextState() {
 
 }
 
+// Sets each cell's currentState to their nextState and their nextState to null.
 function goToNextState() {
 
   stats.aliveCells = 0;
@@ -468,10 +459,7 @@ function goToNextState() {
 
 }
 
-/*
- * Returns the number of alive cells neighboring the cell
- * at the given column, row, and layer.
- */
+//Returns the number of alive cells neighboring the cell at the location given.
 function countAliveNeighbors(column, row, layer) {
 
   // Directions
@@ -559,6 +547,20 @@ function countAliveNeighbors(column, row, layer) {
 
 }
 
+/**
+ * animate() - renders the scene each frame.
+ *
+ * If animationOn
+ * 		1) Cells iterate to next cycle if appropriate amount of time has passed.
+ *   	2) Stats update.
+ *    3) World rotates if rotationOn has been set to true.
+ *
+ * Always
+ * 		1) User controls update - allows user to move scene with mouse.
+ * 		2) Status menu in GUI updates.
+ * 		3) An animation frame is requested, passing this method as callback.
+ *
+ */
 function animate() {
 
 	requestAnimationFrame(animate);
@@ -566,15 +568,15 @@ function animate() {
   if (settings.animationOn) {
 
   	// Speed is a 0-100 % value resulting in 200-1000ms
-  	const timeBetweenCycles = 800 - settings.speed * 8 + 200
+  	const timeBetweenCycles = 800 - settings.cycleSpeed * 8 + 200
 
     if (performance.now() - stats.lastCycleTime >= timeBetweenCycles) {
 
-      stats.lastCycleTime = performance.now();
-      stats.iterations++;
-
       determineNextState();
       goToNextState();
+
+      stats.lastCycleTime = performance.now();
+      stats.iterations++;
 
     }
 
