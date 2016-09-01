@@ -1,7 +1,7 @@
 # Life - Conway's Game of Life in 3 Dimensions
 
 <p align="center">
-<img src="Media/desktop_app.png" width="70%" height="70%">
+<img src="MEDIA/desktop_app.png" width="70%" height="70%">
 <div align="center"><i>4,000 3D cells playing The Game of Life in the desktop version</i></div>
 </p>
 
