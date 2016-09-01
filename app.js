@@ -139,7 +139,7 @@ const clampAndReplace = (min, minReplacement, max, maxReplacement) => {
 // Simple clampers, returns the given value within the specified bounds.
 const clamp = (min, max) => clampAndReplace(min, min, max, max);
 const clampPercentage = clamp(0, 100);
-const clampRule = clamp(0, 27);
+const clampRule = clamp(0, 26);
 
 // Returns the value if no wrapping is needed, else returns the value set to
 // opposite side of the cell array.
