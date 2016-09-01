@@ -16,7 +16,7 @@ Implementing the game of life in 3 dimensions requires adjusting the rules to ac
 This implementation is written in JavaScript, with features from ES5 and ES6, using the Three.js graphics library and is available as a desktop application thanks to the Electron.js library. 
 
 <p align="center">
-<img src="Media/three_iterations.png" width="70%" height="70%">
+<img src="MEDIA/three_iterations.png" width="70%" height="70%">
 <div align="center"><i>Three of the first few states from one instance.</i></div>
 </p>
 
