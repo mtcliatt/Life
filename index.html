@@ -14,129 +14,129 @@
 			overflow: hidden;
 		}
 
-    .controls {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 25vw;
-      height: 100vh;
-      border-right: 2px solid white;
-      background-color: #222222;
-      text-align: center;
-      font-family: "Lucida Console", Monaco, monospace;
-    }
+		.controls {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 25vw;
+			height: 100vh;
+			border-right: 2px solid white;
+			background-color: #222222;
+			text-align: center;
+			font-family: "Lucida Console", Monaco, monospace;
+		}
 
-    .controlLabel {
-      display: inline;
-      color: white;
-      font-size: 14px;
-      margin: 1px;
-    }
+		.controlLabel {
+			display: inline;
+			color: white;
+			font-size: 14px;
+			margin: 1px;
+		}
 
-    .controlVar {
-      text-decoration: underline;
-    }
+		.controlVar {
+			text-decoration: underline;
+		}
 
-    button {
-      background-color: #004466;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      padding: 1px 5px;
-      text-align: center;
-      display: inline;
-      font-size: 16px;
-    }
+		button {
+			background-color: #004466;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			padding: 1px 5px;
+			text-align: center;
+			display: inline;
+			font-size: 16px;
+		}
 
-    .status {
-      background-color: #111111;
-      position: relative;
-      left: 5%;
-      top: 1%;
-      width: 90%;
-      height: 25%;
-      color: #00ff32;
-      border: solid 2px #00ff32;
-    }
+		.status {
+			background-color: #111111;
+			position: relative;
+			left: 5%;
+			top: 1%;
+			width: 90%;
+			height: 25%;
+			color: #00ff32;
+			border: solid 2px #00ff32;
+		}
 
-    .statusLabel {
-      font-size: 12px;
-      margin: 1px;
-      display: inline;
-    }
+		.statusLabel {
+			font-size: 12px;
+			margin: 1px;
+			display: inline;
+		}
 
 	</style>
 </head>
 <body>
 	<div id="drawingCanvas"></div>
 
-  <div class="controls">
+	<div class="controls">
 
-    <div class="status">
-      <p><u>Status</u></p>
+		<div class="status">
+			<p><u>Status</u></p>
 
-      <p class="statusLabel">Animation: </p>
-      <p id="animationOnStatus" class="statusLabel">ON</p><br>
+			<p class="statusLabel">Animation: </p>
+			<p id="animationOnStatus" class="statusLabel">ON</p><br>
 
-      <p class="statusLabel">Wrap-Around: </p>
-      <p id="wrapAroundOnStatus" class="statusLabel">ON</p><br>
+			<p class="statusLabel">Wrap-Around: </p>
+			<p id="wrapAroundOnStatus" class="statusLabel">ON</p><br>
 
-      <p class="statusLabel">Rotation: </p>
-      <p id="rotationOnStatus" class="statusLabel">ON</p><br><br>
+			<p class="statusLabel">Rotation: </p>
+			<p id="rotationOnStatus" class="statusLabel">ON</p><br><br>
 
-      <p class="statusLabel">Iterations: </p>
-      <p id="iterationsStatus" class="statusLabel">0</p><br>
+			<p class="statusLabel">Iterations: </p>
+			<p id="iterationsStatus" class="statusLabel">0</p><br>
 
-      <p class="statusLabel">Cells alive: </p>
-      <p id="cellsStatus" class="statusLabel">0</p><br>
+			<p class="statusLabel">Cells alive: </p>
+			<p id="cellsStatus" class="statusLabel">0</p><br>
 
-      <p class="statusLabel">Stalled: </p>
-      <p id="stalledStatus" class="statusLabel">No</p><br>
-    </div>
+			<p class="statusLabel">Stalled: </p>
+			<p id="stalledStatus" class="statusLabel">No</p><br>
+		</div>
 
-    <br><br><br>
+		<br><br><br>
 
-    <button id="animationOnButton">Pause/Resume</button><br><br>
-    <button id="wrapAroundOnButton">Toggle Wrap-Around</button><br><br>
-    <button id="rotationOnButton">Toggle Auto-Rotate</button><br><br>
+		<button id="animationOnButton">Pause/Resume</button><br><br>
+		<button id="wrapAroundOnButton">Toggle Wrap-Around</button><br><br>
+		<button id="rotationOnButton">Toggle Auto-Rotate</button><br><br>
 
-    <button id="randomizeButton">Reset State</button>
-    <button id="resetCameraButton">Reset Camera</button><br><br>
+		<button id="randomizeButton">Reset State</button>
+		<button id="resetCameraButton">Reset Camera</button><br><br>
 
-    <br><br>
+		<br><br>
 
-    <p class="controlLabel">Cells starting alive</p><br>
-    <p class="controlLabel controlVar" id="startPercentageTextField"></p>
-    <button id="decreaseStartPercentage">-</button>
-    <button id="increaseStartPercentage">+</button><br><br>
+		<p class="controlLabel">Cells starting alive</p><br>
+		<p class="controlLabel controlVar" id="startPercentageTextField"></p>
+		<button id="decreaseStartPercentage">-</button>
+		<button id="increaseStartPercentage">+</button><br><br>
 
-    <p class="controlLabel">Cycle Speed (0 - 100%)</p><br>
-    <p class="controlLabel controlVar" id="cycleSpeedTextField"></p>
-    <button id="decreaseSpeed">-</button>
-    <button id="increaseSpeed">+</button>
+		<p class="controlLabel">Cycle Speed (0 - 100%)</p><br>
+		<p class="controlLabel controlVar" id="cycleSpeedTextField"></p>
+		<button id="decreaseSpeed">-</button>
+		<button id="increaseSpeed">+</button>
 
-    <br><br><br><br>
+		<br><br><br><br>
 
-    <p class="controlLabel">Overcrowding<br> &gt;</p>
-    <p class="controlLabel controlVar" id="overcrowdingTextField"></p>
-    <button id="decreaseOvercrowding">-</button>
-    <button id="increaseOvercrowding">+</button><br><br>
+		<p class="controlLabel">Overcrowding<br> &gt;</p>
+		<p class="controlLabel controlVar" id="overcrowdingTextField"></p>
+		<button id="decreaseOvercrowding">-</button>
+		<button id="increaseOvercrowding">+</button><br><br>
 
-    <p class="controlLabel">Starvation <br>&lt;</p>
-    <p class="controlLabel controlVar" id="starvationTextField"></p>
-    <button id="decreaseStarvation">-</button>
-    <button id="increaseStarvation">+</button><br><br>
+		<p class="controlLabel">Starvation <br>&lt;</p>
+		<p class="controlLabel controlVar" id="starvationTextField"></p>
+		<button id="decreaseStarvation">-</button>
+		<button id="increaseStarvation">+</button><br><br>
 
-    <p class="controlLabel">Birth</p><br>
-    <button id="decreaseBirthMin">-</button>
-    <button id="increaseBirthMin">+</button>
-    <p class="controlLabel controlVar" id="birthMinTextField"></p>
-    <p class="controlLabel">&gt; AND &lt;</p>
-    <p class="controlLabel controlVar" id="birthMaxTextField"></p>
-    <button id="decreaseBirthMax">-</button>
-    <button id="increaseBirthMax">+</button>
+		<p class="controlLabel">Birth</p><br>
+		<button id="decreaseBirthMin">-</button>
+		<button id="increaseBirthMin">+</button>
+		<p class="controlLabel controlVar" id="birthMinTextField"></p>
+		<p class="controlLabel">&gt; AND &lt;</p>
+		<p class="controlLabel controlVar" id="birthMaxTextField"></p>
+		<button id="decreaseBirthMax">-</button>
+		<button id="increaseBirthMax">+</button>
 
-  </div>
+	</div>
 
 	<script src="./three.min.js"></script>
 	<script src="./OrbitControls.js"></script>

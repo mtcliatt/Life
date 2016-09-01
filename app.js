@@ -31,23 +31,23 @@ const settings = {
 	cellSize: 2,
 	cellPadding: 1,
 	worldSize: 20,
-  startPercentage: 30,
+	startPercentage: 30,
 
-  wrapAroundOn: true,
-  animationOn: true,
-  rotationOn: true,
+	wrapAroundOn: true,
+	animationOn: true,
+	rotationOn: true,
 
-  rotationSpeed: 0.01,
-  cycleSpeed: 30,
+	rotationSpeed: 0.01,
+	cycleSpeed: 30,
 
-  rules: {
+	rules: {
 
-	  overcrowding: 12,
-	  starvation: 6,
-	  birthMin: 6,
-	  birthMax: 12,
+		overcrowding: 12,
+		starvation: 6,
+		birthMin: 6,
+		birthMax: 12,
 
-  },
+	},
 
 };
 
@@ -62,10 +62,10 @@ const settings = {
  */
 const stats = {
 
-  aliveCells: 0,
-  lastCycleTime: 0,
-  iterations: 0,
-  isStalled: false,
+	aliveCells: 0,
+	lastCycleTime: 0,
+	iterations: 0,
+	isStalled: false,
 
 };
 
@@ -97,13 +97,13 @@ let cellParent;
  */
 const writeTextField = (textFieldId, value) => {
 
-  const textField = document.getElementById(textFieldId);
+	const textField = document.getElementById(textFieldId);
 
-  if (textField !== null) {
+	if (textField !== null) {
 
-    textField.innerHTML = value;
+		textField.innerHTML = value;
 
-  }
+	}
 
 }
 
@@ -149,7 +149,7 @@ const wrapClamper = clampAndReplace(0, settings.worldSize - 1, settings.worldSiz
 const inBounds = value => value === wrapClamper(value);
 
 /**
- * init() - Starts the show!
+ * Starts the show!
  *
  * 1) Sets up the THREE.js components needed to draw graphics.
  * 2) resetStats() - Sets the tracking variables to their correct starting values.
@@ -191,8 +191,8 @@ const inBounds = value => value === wrapClamper(value);
 
 	});
 
-  resetStats();
-  setUpGUIControls();
+	resetStats();
+	setUpGUIControls();
 	createWorld();
 	animate();
 
@@ -201,90 +201,90 @@ const inBounds = value => value === wrapClamper(value);
 // Reset all of the stats to their starting/default values.
 function resetStats() {
 
-  stats.isStalled = false;
-  stats.iterations = 0;
-  stats.frames = 0;
-  stats.aliveCells = 0;
-  stats.totalCells = Math.pow(settings.worldSize, 3);
+	stats.isStalled = false;
+	stats.iterations = 0;
+	stats.frames = 0;
+	stats.aliveCells = 0;
+	stats.totalCells = Math.pow(settings.worldSize, 3);
 
 }
 
 function setUpGUIControls() {
 
-  writeTextField('startPercentageTextField', settings.startPercentage + '%');
-  writeTextField('cycleSpeedTextField', settings.cycleSpeed + '%');
-  writeTextField('overcrowdingTextField', settings.rules.overcrowding);
-  writeTextField('starvationTextField', settings.rules.starvation);
-  writeTextField('birthMinTextField', settings.rules.birthMin);
-  writeTextField('birthMaxTextField', settings.rules.birthMax);
+	writeTextField('startPercentageTextField', settings.startPercentage + '%');
+	writeTextField('cycleSpeedTextField', settings.cycleSpeed + '%');
+	writeTextField('overcrowdingTextField', settings.rules.overcrowding);
+	writeTextField('starvationTextField', settings.rules.starvation);
+	writeTextField('birthMinTextField', settings.rules.birthMin);
+	writeTextField('birthMaxTextField', settings.rules.birthMax);
 
 	camera.reset = () => {
-  	camera.position.copy(camera.startingPosition);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-  }
+		camera.position.copy(camera.startingPosition);
+		camera.lookAt(new THREE.Vector3(0, 0, 0));
+	}
 
-  /**
-   * Returns a function which only needs the name of a variable,
-   * and the amount to change it by.
-   */
-  const updater = (parent, clamper, suffix = '') => {
+	/**
+	 * Returns a function which only needs the name of a variable,
+	 * and the amount to change it by.
+	 */
+	const updater = (parent, clamper, suffix = '') => {
 
-    return (setting, diff) => {
+		return (setting, diff) => {
 
-      parent[setting] = clamper(parent[setting] + diff);
-      writeTextField(setting + 'TextField', parent[setting] + '' + suffix);
+			parent[setting] = clamper(parent[setting] + diff);
+			writeTextField(setting + 'TextField', parent[setting] + '' + suffix);
 
-    };
+		};
 
-  };
+	};
 
-  const settingUpdater = updater(settings, clampPercentage, '%');
-  const increaseSetting = setting => settingUpdater(setting, 10);
-  const decreaseSetting = setting => settingUpdater(setting, -10);
+	const settingUpdater = updater(settings, clampPercentage, '%');
+	const increaseSetting = setting => settingUpdater(setting, 10);
+	const decreaseSetting = setting => settingUpdater(setting, -10);
 
-  const ruleUpdater = updater(settings.rules, clampRule);
-  const increaseRule = rule => ruleUpdater(rule, 1);
-  const decreaseRule = rule => ruleUpdater(rule, -1);
+	const ruleUpdater = updater(settings.rules, clampRule);
+	const increaseRule = rule => ruleUpdater(rule, 1);
+	const decreaseRule = rule => ruleUpdater(rule, -1);
 
-  const toggleSetting = (setting) => {
+	const toggleSetting = (setting) => {
 
-    settings[setting] = !settings[setting];
-    const text = settings[setting] ? 'ON' : 'OFF';
-    writeTextField(setting + 'Status', text);
+		settings[setting] = !settings[setting];
+		const text = settings[setting] ? 'ON' : 'OFF';
+		writeTextField(setting + 'Status', text);
 
-  }
+	}
 
 	// This function makes it easy to add 'onClick' events
 	const addOnClick = (elementId, func) => {
 
-	  const element = document.getElementById(elementId);
+		const element = document.getElementById(elementId);
 
-	  if (element !== null) {
+		if (element !== null) {
 
-	  	element.addEventListener('click', func);
+			element.addEventListener('click', func);
 
-	  }
+		}
 
 	}
 
-  addOnClick('randomizeButton', randomizeStates);
-  addOnClick('resetCameraButton', camera.reset);
-  addOnClick('animationOnButton', () => toggleSetting('animationOn'));
-  addOnClick('wrapAroundOnButton', () => toggleSetting('wrapAroundOn'));
-  addOnClick('rotationOnButton', () => toggleSetting('rotationOn'));
+	addOnClick('randomizeButton', randomizeStates);
+	addOnClick('resetCameraButton', camera.reset);
+	addOnClick('animationOnButton', () => toggleSetting('animationOn'));
+	addOnClick('wrapAroundOnButton', () => toggleSetting('wrapAroundOn'));
+	addOnClick('rotationOnButton', () => toggleSetting('rotationOn'));
 
-  addOnClick('increaseSpeed', () => increaseSetting('cycleSpeed'));
-  addOnClick('decreaseSpeed', () => decreaseSetting('cycleSpeed'));
-  addOnClick('increaseStartPercentage', () => increaseSetting('startPercentage'));
-  addOnClick('decreaseStartPercentage', () => decreaseSetting('startPercentage'));
-  addOnClick('increaseOvercrowding', () => increaseRule('overcrowding'));
-  addOnClick('decreaseOvercrowding', () => decreaseRule('overcrowding'));
-  addOnClick('increaseStarvation', () => increaseRule('starvation'));
-  addOnClick('decreaseStarvation', () => decreaseRule('starvation'));
-  addOnClick('increaseBirthMin', () => increaseRule('birthMin'));
-  addOnClick('decreaseBirthMin', () => decreaseRule('birthMin'));
-  addOnClick('increaseBirthMax', () => increaseRule('birthMax'));
-  addOnClick('decreaseBirthMax', () => decreaseRule('birthMax'));
+	addOnClick('increaseSpeed', () => increaseSetting('cycleSpeed'));
+	addOnClick('decreaseSpeed', () => decreaseSetting('cycleSpeed'));
+	addOnClick('increaseStartPercentage', () => increaseSetting('startPercentage'));
+	addOnClick('decreaseStartPercentage', () => decreaseSetting('startPercentage'));
+	addOnClick('increaseOvercrowding', () => increaseRule('overcrowding'));
+	addOnClick('decreaseOvercrowding', () => decreaseRule('overcrowding'));
+	addOnClick('increaseStarvation', () => increaseRule('starvation'));
+	addOnClick('decreaseStarvation', () => decreaseRule('starvation'));
+	addOnClick('increaseBirthMin', () => increaseRule('birthMin'));
+	addOnClick('decreaseBirthMin', () => decreaseRule('birthMin'));
+	addOnClick('increaseBirthMax', () => increaseRule('birthMax'));
+	addOnClick('decreaseBirthMax', () => decreaseRule('birthMax'));
 
 }
 
@@ -301,33 +301,33 @@ function updateStatusMenu() {
 
 function randomizeStates() {
 
-  cellArray.forEach(column => {
+	cellArray.forEach(column => {
 
-    column.forEach(row => {
+		column.forEach(row => {
 
-      row.forEach(cell => {
+			row.forEach(cell => {
 
-        if (Math.random() < (settings.startPercentage / 100)) {
+				if (Math.random() < (settings.startPercentage / 100)) {
 
-          cell.currentState = cellStates.alive;
-          cell.visible = true;
+					cell.currentState = cellStates.alive;
+					cell.visible = true;
 
-        } else {
+				} else {
 
-          cell.currentState = cellStates.dead;
-          cell.visible = false;
+					cell.currentState = cellStates.dead;
+					cell.visible = false;
 
-        }
+				}
 
-        // This should always get reset to a certain value before being used.
-        // If this is still null when used later, something went wrong.
-        cell.nextState = null;
+				// This should always get reset to a certain value before being used.
+				// If this is still null when used later, something went wrong.
+				cell.nextState = null;
 
-      });
+			});
 
-    });
+		});
 
-  });
+	});
 
 };
 
@@ -392,7 +392,7 @@ function createWorld() {
 // Determines and sets the nextState for each cell.
 function determineNextState() {
 
-  let stateChanged = false;
+	let stateChanged = false;
 
 	for (let column = 0; column < cellArray.length; column++) {
 
@@ -406,43 +406,43 @@ function determineNextState() {
 				let aliveNeighbors = countAliveNeighbors(column, row, layer);
 
 				// This logic is detailed in the comments on settings.rules
-        if (cell.currentState === cellStates.dead) {
+				if (cell.currentState === cellStates.dead) {
 
-          const aboveMin = aliveNeighbors > settings.rules.birthMin;
-          const belowMax = aliveNeighbors < settings.rules.birthMax;
+					const aboveMin = aliveNeighbors > settings.rules.birthMin;
+					const belowMax = aliveNeighbors < settings.rules.birthMax;
 
-          if (aboveMin && belowMax) {
+					if (aboveMin && belowMax) {
 
-            cell.nextState = cellStates.alive;
+						cell.nextState = cellStates.alive;
 
-          } else {
+					} else {
 
-            cell.nextState = cellStates.dead;
+						cell.nextState = cellStates.dead;
 
-          }
+					}
 
-        } else {
+				} else {
 
-          const starved = aliveNeighbors < settings.rules.starvation;
-          const crowded = aliveNeighbors > settings.rules.overcrowding;
+					const starved = aliveNeighbors < settings.rules.starvation;
+					const crowded = aliveNeighbors > settings.rules.overcrowding;
 
-          if (starved || crowded) {
+					if (starved || crowded) {
 
-            cell.nextState = cellStates.dead;
+						cell.nextState = cellStates.dead;
 
-          } else {
+					} else {
 
-            cell.nextState = cellStates.alive;
+						cell.nextState = cellStates.alive;
 
-          }
+					}
 
-        }
+				}
 
-        if (!stateChanged && cell.nextState !== cell.currentState) {
+				if (!stateChanged && cell.nextState !== cell.currentState) {
 
-          stateChanged = true;
+					stateChanged = true;
 
-        }
+				}
 
 			}
 
@@ -450,14 +450,14 @@ function determineNextState() {
 
 	}
 
-  stats.isStalled = !stateChanged;
+	stats.isStalled = !stateChanged;
 
 }
 
 // Sets each cell's currentState to their nextState and their nextState to null.
 function goToNextState() {
 
-  stats.aliveCells = 0;
+	stats.aliveCells = 0;
 
 	cellArray.forEach(column => {
 
@@ -465,77 +465,77 @@ function goToNextState() {
 
 			row.forEach(cell => {
 
-        cell.currentState = cell.nextState;
-        cell.nextState = null;
+				cell.currentState = cell.nextState;
+				cell.nextState = null;
 
-        if (cell.currentState === cellStates.alive) {
+				if (cell.currentState === cellStates.alive) {
 
-          cell.visible = true;
-          stats.aliveCells++;
+					cell.visible = true;
+					stats.aliveCells++;
 
-        } else {
+				} else {
 
-          cell.visible = false;
+					cell.visible = false;
 
-        }
+				}
 
-      });
+			});
 
-    });
+		});
 
-  });
+	});
 
 }
 
 //Returns the number of alive cells neighboring the cell at the location given.
 function countAliveNeighbors(column, row, layer) {
 
-  // Directions
+	// Directions
 	const dirs = [0, 1, -1];
 	let count = 0;
 
 	for (let x = 0; x < dirs.length; x++) {
 
-    for (let y = 0; y < dirs.length; y++) {
+		for (let y = 0; y < dirs.length; y++) {
 
-      for (let z = 0; z < dirs.length; z++) {
+			for (let z = 0; z < dirs.length; z++) {
 
-        // Don't count the cell itself
-        if (x === 0 && y === 0 && z === 0) {
+				// Don't count the cell itself
+				if (x === 0 && y === 0 && z === 0) {
 
-        	continue;
+					continue;
 
-        }
+				}
 
-        // Current neighbor coordinates
-        let nColumn = column + dirs[x];
-        let nRow = row + dirs[y];
-        let nLayer = layer + dirs[z];
+				// Current neighbor coordinates
+				let nColumn = column + dirs[x];
+				let nRow = row + dirs[y];
+				let nLayer = layer + dirs[z];
 
-        if (settings.wrapAroundOn) {
+				if (settings.wrapAroundOn) {
 
-          nColumn = wrapClamper(nColumn);
-          nRow = wrapClamper(nRow);
-          nLayer = wrapClamper(nLayer);
+					nColumn = wrapClamper(nColumn);
+					nRow = wrapClamper(nRow);
+					nLayer = wrapClamper(nLayer);
 
-        } else {
+				} else {
 
-        	// Skip neighbor if isn't next to cell i.e. if wrapping is needed
-        	if ( !(inBounds(nColumn) && inBounds(nRow) && inBounds(nLayer)) ) {
+					// Skip neighbor if isn't next to cell i.e. if wrapping is needed
+					if ( !(inBounds(nColumn) && inBounds(nRow) && inBounds(nLayer)) ) {
 
-        		continue;
+						continue;
 
-        	}
+					}
 
-        }
+				}
 
-        const currentNeighborCell = cellArray[nColumn][nRow][nLayer];
+				const currentNeighborCell = cellArray[nColumn][nRow][nLayer];
 
-        if (currentNeighborCell.currentState === cellStates.alive) {
+				if (currentNeighborCell.currentState === cellStates.alive) {
 
-        	count++;
+					count++;
 
-        }
+				}
 
 			}
 
@@ -565,31 +565,31 @@ function animate() {
 
 	requestAnimationFrame(animate);
 
-  if (settings.animationOn) {
+	if (settings.animationOn) {
 
-  	// Speed is a 0-100 % value resulting in 200-1000ms
-  	const timeBetweenCycles = 800 - settings.cycleSpeed * 8 + 200
+		// Speed is a 0-100 % value resulting in 200-1000ms
+		const timeBetweenCycles = 800 - settings.cycleSpeed * 8 + 200
 
-    if (performance.now() - stats.lastCycleTime >= timeBetweenCycles) {
+		if (performance.now() - stats.lastCycleTime >= timeBetweenCycles) {
 
-      determineNextState();
-      goToNextState();
+			determineNextState();
+			goToNextState();
 
-      stats.lastCycleTime = performance.now();
-      stats.iterations++;
+			stats.lastCycleTime = performance.now();
+			stats.iterations++;
 
-    }
+		}
 
-    if (settings.rotationOn) {
+		if (settings.rotationOn) {
 
-    	cellParent.rotation.y += settings.rotationSpeed;
+			cellParent.rotation.y += settings.rotationSpeed;
 
-    }
+		}
 
-  }
+	}
 
-  controls.update();
-  updateStatusMenu();
+	controls.update();
+	updateStatusMenu();
 	renderer.render(scene, camera);
 
 }
